@@ -59,14 +59,21 @@ export async function apiRequest(path, options = {}) {
   }
 
   let payload
+  let responseText = ''
   try {
-    payload = await response.json()
+    responseText = await response.text()
+    payload = responseText ? JSON.parse(responseText) : null
   } catch {
     payload = null
   }
 
   if (!payload || typeof payload !== 'object') {
-    const error = new ApiError('The server returned an invalid response.', response.status)
+    const error = new ApiError(
+      response.ok
+        ? 'The server returned an invalid response.'
+        : `The server returned an invalid response (${response.status}).`,
+      response.status
+    )
     showErrorToast(error.message)
     throw error
   }
