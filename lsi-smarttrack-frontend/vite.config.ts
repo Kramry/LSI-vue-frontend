@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [vue()],
     server: {
+      host: '0.0.0.0',
+      port: 5176,
+      strictPort: true,
       proxy: {
         '/api': {
           target: env.API_PROXY_TARGET || 'http://localhost/LavaLust-dev-v4-LSI/LavaLust-dev-v4/public',

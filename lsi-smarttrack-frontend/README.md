@@ -67,6 +67,7 @@ These endpoints use `{ "ok": true, "data": ..., "message": "" }` or
 |---|---|---|
 | `GET /api/session` | None; returns authentication state and a CSRF token | Public |
 | `POST /api/login` | `{ "username": "...", "password": "..." }` | Public; CSRF required |
+| `POST /api/register` | `{ "full_name": "...", "username": "...", "email": "...", "password": "...", "password_confirmation": "..." }` | Public; CSRF required; creates a trainee account |
 | `POST /api/logout` | Empty JSON body | Signed-in users; CSRF required |
 | `GET /api/attendance/classes` | None | Administrator, staff, instructor |
 | `GET /api/attendance/classes/{classId}/schedules` | None; today's sessions | Administrator, staff, instructor |

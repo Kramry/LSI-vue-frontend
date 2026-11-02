@@ -106,12 +106,17 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: () => import('../views/Login.vue')
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: () => import('../views/Register.vue')
     }
   ]
 })
 
 router.beforeEach(async (to) => {
-  if (to.name === 'login') return true
+  if (to.name === 'login' || to.name === 'register') return true
 
   try {
     const session = await getSession()

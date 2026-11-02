@@ -52,7 +52,7 @@ onMounted(async () => {
     <aside class="sidebar">
       <div class="side-top">
         <RouterLink class="brand" to="/dashboard">
-          <span class="brand-mark" aria-hidden="true">L</span>
+          <img class="brand-mark" src="/lsi-official-logo.jpg" alt="LSI logo">
           <span class="brand-text">LSI <span>SmartTrack</span></span>
         </RouterLink>
 
@@ -131,16 +131,12 @@ onMounted(async () => {
 }
 
 .brand-mark {
-  display: grid;
-  place-items: center;
+  display: block;
+  flex: none;
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: var(--sky);
-  color: var(--navy-deep);
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 20px;
-  font-weight: 700;
+  object-fit: contain;
 }
 
 .brand-text {

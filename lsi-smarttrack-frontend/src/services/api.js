@@ -116,6 +116,20 @@ export async function login(username, password) {
   return response.data
 }
 
+export async function register(fullName, username, email, password, passwordConfirmation) {
+  const response = await apiRequest('/register', {
+    method: 'POST',
+    body: {
+      full_name: fullName,
+      username,
+      email,
+      password,
+      password_confirmation: passwordConfirmation
+    }
+  })
+  return response.data
+}
+
 export async function logout() {
   const response = await apiRequest('/logout', { method: 'POST', body: {} })
   csrfToken = ''
