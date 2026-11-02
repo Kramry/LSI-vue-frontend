@@ -1,0 +1,102 @@
+:root {
+  /* Brand palette (shared by every page) */
+  --navy: #173a60;
+  --navy-deep: #112c49;
+  --blue: #265f94;
+  --blue-hover: #1f4f7d;
+  --sky: #8fc4f5;
+  --text: #1b2a3a;
+  --muted: #5d6f82;
+  --line: #e1e8f1;
+  --field: #eaf0fb;
+  --surface: #ffffff;
+  --page: #f3f6fb;
+  --danger: #b4281f;
+  --warn: #c98a00;
+  --ok: #2d8a57;
+
+  font-family: 'DM Sans', 'Segoe UI', system-ui, Arial, sans-serif;
+  color: var(--text);
+  background: var(--page);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100%;
+}
+
+body {
+  background: var(--page);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+/* Headings use the serif display face */
+h1,
+h2,
+h3 {
+  font-family: 'Fraunces', Georgia, serif;
+  color: var(--navy-deep);
+  letter-spacing: -0.01em;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: var(--blue);
+}
+
+a:hover {
+  color: var(--navy-deep);
+}
+
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgb(143 196 245 / 55%);
+  color: var(--navy-deep);
+}
+
+/* Slim, quiet scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #b6c8de transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  background: #b6c8de;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

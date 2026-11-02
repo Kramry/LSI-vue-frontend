@@ -1,0 +1,101 @@
+/* base.css: brand palette and base reset */
+:root {
+  /* Brand palette */
+  --navy: #173a60;
+  --navy-deep: #112c49;
+  --blue: #265f94;
+  --blue-hover: #1f4f7d;
+  --sky: #8fc4f5;
+  --ink: #1b2a3a;
+  --muted: #5d6f82;
+  --line: #e1e8f1;
+  --field: #eaf0fb;
+  --page: #f3f6fb;
+  --ok: #2d8a57;
+  --warn: #c98a00;
+  --danger: #b4281f;
+
+  /* Semantic variables (same names as before) */
+  --color-background: #ffffff;
+  --color-background-soft: var(--page);
+  --color-background-mute: var(--field);
+
+  --color-border: var(--line);
+  --color-border-hover: #b6c8de;
+
+  --color-heading: var(--navy-deep);
+  --color-text: var(--ink);
+
+  --section-gap: 160px;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-background-soft);
+  line-height: 1.6;
+  font-family: 'DM Sans', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  color: var(--color-heading);
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+strong,
+b,
+th {
+  font-weight: 700;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: var(--blue);
+}
+
+a:hover {
+  color: var(--navy-deep);
+}
+
+:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: rgb(143 196 245 / 55%);
+  color: var(--navy-deep);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
