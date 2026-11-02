@@ -1,0 +1,23 @@
+
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { loadEnv } from 'vite'
+
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+
+  return {
+    plugins: [vue()],
+    server: {
+      host: '0.0.0.0',
+      port: 5176,
+      strictPort: true,
+      proxy: {
+        '/api': {
+          target: env.API_PROXY_TARGET || 'http://localhost/LavaLust-dev-v4-LSI/LavaLust-dev-v4/public',
+          changeOrigin: true
+        }
+      }
+    }
+  }
+})
