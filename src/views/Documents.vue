@@ -25,8 +25,10 @@ interface DocumentsData {
   trainee_classes: TraineeClass[]
   document_options: { trainees: Choice[]; classes: Choice[] }
 }
+interface StorageStatus { enabled: boolean; provider: string; fallback_available: boolean }
 
 const data = ref<DocumentsData | null>(null)
+const storage = ref<StorageStatus>({ enabled: false, provider: 'local', fallback_available: true })
 const role = ref('')
 const requirementId = ref('')
 const requirementClassId = ref('')
@@ -72,8 +74,12 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const response = await apiGet<DocumentsData>('/modules/documents')
+    const [response, storageResponse] = await Promise.all([
+      apiGet<DocumentsData>('/modules/documents'),
+      apiGet<StorageStatus>('/storage/status')
+    ])
     data.value = response.data
+    storage.value = storageResponse.data
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to load documents.'
   } finally {
@@ -223,6 +229,10 @@ onMounted(async () => {
       <aside v-if="canUpload" class="panel upload-panel">
         <h2>{{ isTrainee ? 'Submit a required document' : 'Upload a document' }}</h2>
         <p class="muted">PDF, JPG, PNG or DOCX, up to 10 MB.</p>
+        <p class="storage-badge" :class="{ cloud: storage.enabled }">
+          <span class="storage-dot" aria-hidden="true"></span>
+          {{ storage.enabled ? `Cloud storage · ${storage.provider.toUpperCase()}` : 'Local storage' }}
+        </p>
 
         <form class="upload-form" @submit.prevent="upload">
           <label v-if="isTrainee">
@@ -575,6 +585,38 @@ onMounted(async () => {
 
 .upload-panel .muted {
   margin: 6px 0 0;
+}
+
+.storage-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  margin: 12px 0 0;
+  padding: 6px 9px;
+  border: 1px solid #dfe7f1;
+  border-radius: 999px;
+  color: #64748b;
+  background: #f5f7fa;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.storage-badge.cloud {
+  border-color: #b7dfc7;
+  color: #1d6b3b;
+  background: #effaf2;
+}
+
+.storage-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+
+.storage-badge.cloud .storage-dot {
+  background: #2f9e5b;
 }
 
 /* ---------- Upload form ---------- */

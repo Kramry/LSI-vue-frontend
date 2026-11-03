@@ -57,8 +57,7 @@ const router = createRouter({
         },
         {
           path: 'announcements',
-          component: () => import('../views/ManagementModule.vue'),
-          props: { section: 'announcements' },
+          component: () => import('../views/Announcements.vue'),
           meta: { roles: ['administrator', 'staff', 'instructor', 'trainee'] }
         },
         {

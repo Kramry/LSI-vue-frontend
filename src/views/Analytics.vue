@@ -99,10 +99,11 @@ onMounted(async () => {
     </form>
 
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
-    <p v-if="loading && !data" class="muted">Loading analytics…</p>
+    <p v-if="loading && !data" class="muted loading">Loading analytics…</p>
 
     <template v-if="data">
-      <section class="kpi-grid">
+      <!-- 1. Headline figures -->
+      <section class="kpi-grid" aria-label="Attendance summary">
         <article class="kpi"><span>Active trainees</span><strong>{{ data.summary.active_trainees.toLocaleString() }}</strong></article>
         <article class="kpi"><span>Active classes</span><strong>{{ data.summary.active_classes.toLocaleString() }}</strong></article>
         <article class="kpi"><span>Attendance records</span><strong>{{ data.summary.attendance_records.toLocaleString() }}</strong></article>
@@ -110,56 +111,115 @@ onMounted(async () => {
         <article class="kpi"><span>Absences</span><strong>{{ data.summary.absent_records.toLocaleString() }}</strong></article>
       </section>
 
-      <section class="panel section">
-        <div class="section-heading"><div><h2>Attendance trend</h2><p class="muted">Daily counts for the selected period.</p></div></div>
-        <div class="trend">
-          <div v-for="item in data.trend" :key="item.date" class="trend-day">
-            <div class="bar-stack" :title="`${item.label}: ${item.present} present, ${item.late} late, ${item.absent} absent`">
-              <i class="bar present" :style="{ height: barWidth(item.present, maxTrendValue) }"></i>
-              <i class="bar late" :style="{ height: barWidth(item.late, maxTrendValue) }"></i>
-              <i class="bar absent" :style="{ height: barWidth(item.absent, maxTrendValue) }"></i>
+      <!-- 2. Trend beside status breakdown -->
+      <section class="split section">
+        <article class="panel">
+          <div class="section-heading">
+            <div>
+              <h2>Attendance trend</h2>
+              <p class="muted">Daily counts for the selected period.</p>
             </div>
-            <small>{{ item.label }}</small>
+            <div class="legend"><span>Present</span><span>Late</span><span>Absent</span></div>
           </div>
-        </div>
-        <div class="legend"><span>Present</span><span>Late</span><span>Absent</span></div>
-      </section>
+          <div class="trend">
+            <div v-for="item in data.trend" :key="item.date" class="trend-day">
+              <div class="bar-stack" :title="`${item.label}: ${item.present} present, ${item.late} late, ${item.absent} absent`">
+                <i class="bar present" :style="{ height: barWidth(item.present, maxTrendValue) }"></i>
+                <i class="bar late" :style="{ height: barWidth(item.late, maxTrendValue) }"></i>
+                <i class="bar absent" :style="{ height: barWidth(item.absent, maxTrendValue) }"></i>
+              </div>
+              <small>{{ item.label }}</small>
+            </div>
+          </div>
+        </article>
 
-      <section class="content-grid section">
         <article class="panel">
           <h2>Attendance status</h2>
-          <div v-for="(count, label) in data.status" :key="label" class="status-row">
-            <span>{{ label }}</span><strong>{{ count.toLocaleString() }}</strong>
-          </div>
-        </article>
-        <article class="panel">
-          <h2>Trainee monitoring</h2>
-          <p class="muted">Up to 100 trainees with attendance in this date range.</p>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Trainee</th><th>Class</th><th>Present</th><th>Late</th><th>Absent</th><th>Rate</th></tr></thead>
-              <tbody>
-                <tr v-for="trainee in data.trainees" :key="String(trainee.trainee_id)">
-                  <td>{{ trainee.trainee_name }}</td><td>{{ trainee.classes }}</td>
-                  <td>{{ trainee.present_records }}</td><td>{{ trainee.late_records }}</td><td>{{ trainee.absent_records }}</td>
-                  <td>{{ trainee.attendance_rate }}%</td>
-                </tr>
-                <tr v-if="!data.trainees.length"><td colspan="6" class="empty">No attendance records in this range.</td></tr>
-              </tbody>
-            </table>
+          <p class="muted">Share of all records in this period.</p>
+          <div v-for="(count, label) in data.status" :key="label" class="status-block">
+            <div class="status-row">
+              <span class="status-name"><i class="dot" :class="String(label).toLowerCase()"></i>{{ label }}</span>
+              <strong>{{ count.toLocaleString() }}</strong>
+            </div>
+            <div class="mini-track">
+              <i
+                :class="String(label).toLowerCase()"
+                :style="{ width: `${Math.round((Number(count) / Math.max(1, Object.values(data.status).reduce((sum, value) => sum + Number(value), 0))) * 100)}%` }"
+              ></i>
+            </div>
           </div>
         </article>
       </section>
 
+      <!-- 3. Who needs attention -->
       <section class="panel section">
-        <h2>Class overview</h2>
+        <div class="section-heading">
+          <div>
+            <h2>Trainee monitoring</h2>
+            <p class="muted">Up to 100 trainees with attendance in this date range.</p>
+          </div>
+          <span class="count-badge">{{ data.trainees.length }} trainees</span>
+        </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Class</th><th>Program</th><th>Active trainees</th><th>Attendance records</th><th>Absences</th><th>Rate</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Trainee</th>
+                <th>Class</th>
+                <th class="num">Present</th>
+                <th class="num">Late</th>
+                <th class="num">Absent</th>
+                <th class="num">Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="trainee in data.trainees" :key="String(trainee.trainee_id)">
+                <td class="strong">{{ trainee.trainee_name }}</td>
+                <td>{{ trainee.classes }}</td>
+                <td class="num">{{ trainee.present_records }}</td>
+                <td class="num">{{ trainee.late_records }}</td>
+                <td class="num">{{ trainee.absent_records }}</td>
+                <td class="num">
+                  <span class="rate" :class="Number(trainee.attendance_rate) >= 90 ? 'good' : Number(trainee.attendance_rate) >= 75 ? 'mid' : 'low'">{{ trainee.attendance_rate }}%</span>
+                </td>
+              </tr>
+              <tr v-if="!data.trainees.length"><td colspan="6" class="empty">No attendance records in this range.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 4. Class overview -->
+      <section class="panel section">
+        <div class="section-heading">
+          <div>
+            <h2>Class overview</h2>
+            <p class="muted">Attendance performance per class.</p>
+          </div>
+          <span class="count-badge">{{ data.classes.length }} classes</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Class</th>
+                <th>Program</th>
+                <th class="num">Active trainees</th>
+                <th class="num">Attendance records</th>
+                <th class="num">Absences</th>
+                <th class="num">Rate</th>
+              </tr>
+            </thead>
             <tbody>
               <tr v-for="item in data.classes" :key="item.class_id">
-                <td>{{ item.class_name }}</td><td>{{ item.program_name }}</td><td>{{ item.active_trainees }}</td>
-                <td>{{ item.attendance_records }}</td><td>{{ item.absent_records }}</td><td>{{ item.attendance_rate }}%</td>
+                <td class="strong">{{ item.class_name }}</td>
+                <td>{{ item.program_name }}</td>
+                <td class="num">{{ item.active_trainees }}</td>
+                <td class="num">{{ item.attendance_records }}</td>
+                <td class="num">{{ item.absent_records }}</td>
+                <td class="num">
+                  <span class="rate" :class="Number(item.attendance_rate) >= 90 ? 'good' : Number(item.attendance_rate) >= 75 ? 'mid' : 'low'">{{ item.attendance_rate }}%</span>
+                </td>
               </tr>
               <tr v-if="!data.classes.length"><td colspan="6" class="empty">No class data available.</td></tr>
             </tbody>
@@ -167,41 +227,56 @@ onMounted(async () => {
         </div>
       </section>
 
-      <section v-if="isFinance && data.payments" class="section">
-        <header class="section-heading"><div><p class="eyebrow">FINANCE / MONITORING</p><h2>Payment analytics</h2><p class="muted">Ledger collections follow the selected dates. Balances and held bonds are current totals.</p></div></header>
+      <!-- 5. Finance -->
+      <section v-if="isFinance && data.payments" class="finance section">
+        <header class="finance-heading">
+          <p class="eyebrow dark">FINANCE / MONITORING</p>
+          <h2>Payment analytics</h2>
+          <p class="muted">Ledger collections follow the selected dates. Balances and held bonds are current totals.</p>
+        </header>
+
         <div class="kpi-grid">
           <article class="kpi"><span>Net payments received</span><strong>{{ money(data.payments.summary.net_collected) }}</strong></article>
           <article class="kpi"><span>Outstanding balance</span><strong>{{ money(data.payments.summary.outstanding_balance) }}</strong></article>
           <article class="kpi"><span>Bonds held</span><strong>{{ money(data.payments.summary.bond_held) }}</strong></article>
           <article class="kpi"><span>Refunds in period</span><strong>{{ money(data.payments.summary.refunded) }}</strong></article>
           <article class="kpi"><span>Forfeited in period</span><strong>{{ money(data.payments.summary.forfeited) }}</strong></article>
-          <article class="kpi"><span>Pending proofs</span><strong>{{ data.payments.summary.pending_proof_count }} · {{ money(data.payments.summary.pending_proof_amount) }}</strong></article>
+          <article class="kpi"><span>Pending proofs</span><strong>{{ data.payments.summary.pending_proof_count }}</strong><small class="kpi-sub">{{ money(data.payments.summary.pending_proof_amount) }}</small></article>
         </div>
-        <div class="panel section">
-          <h3>Collections by day</h3>
-          <div class="collection-list">
-            <div v-for="item in data.payments.collections" :key="item.date" class="collection-row">
-              <span>{{ item.label }}</span>
-              <div class="collection-track"><i :style="{ width: barWidth(Math.max(item.amount, 0), Math.max(1, ...data.payments.collections.map((day) => day.amount))) }"></i></div>
-              <strong>{{ money(item.amount) }}</strong>
+
+        <div class="split">
+          <article class="panel">
+            <h3>Collections by day</h3>
+            <div class="collection-list">
+              <div v-for="item in data.payments.collections" :key="item.date" class="collection-row">
+                <span>{{ item.label }}</span>
+                <div class="collection-track">
+                  <i :style="{ width: barWidth(Math.max(item.amount, 0), Math.max(1, ...data.payments.collections.map((day) => day.amount))) }"></i>
+                </div>
+                <strong>{{ money(item.amount) }}</strong>
+              </div>
             </div>
+            <p v-if="!data.payments.collections.length" class="empty">No collections in this range.</p>
+          </article>
+
+          <div class="stack">
+            <article class="panel">
+              <h3>Payments by fee type</h3>
+              <div v-for="item in data.payments.by_fee_kind" :key="item.fee_kind" class="status-row">
+                <span>{{ item.fee_kind === 'bond' ? 'Bond deposit' : 'Registration fee' }}</span>
+                <strong>{{ money(item.net_collected) }}</strong>
+              </div>
+              <p v-if="!data.payments.by_fee_kind.length" class="empty">No payments in this range.</p>
+            </article>
+            <article class="panel">
+              <h3>Payments by method</h3>
+              <div v-for="item in data.payments.by_method" :key="item.method" class="status-row">
+                <span class="method">{{ item.method }} <em>{{ item.payment_count }}</em></span>
+                <strong>{{ money(item.net_collected) }}</strong>
+              </div>
+              <p v-if="!data.payments.by_method.length" class="empty">No payments in this range.</p>
+            </article>
           </div>
-        </div>
-        <div class="content-grid section">
-          <article class="panel">
-            <h3>Payments by fee type</h3>
-            <div v-for="item in data.payments.by_fee_kind" :key="item.fee_kind" class="status-row">
-              <span>{{ item.fee_kind === 'bond' ? 'Bond deposit' : 'Registration fee' }}</span><strong>{{ money(item.net_collected) }}</strong>
-            </div>
-            <p v-if="!data.payments.by_fee_kind.length" class="empty">No payments in this range.</p>
-          </article>
-          <article class="panel">
-            <h3>Payments by method</h3>
-            <div v-for="item in data.payments.by_method" :key="item.method" class="status-row">
-              <span>{{ item.method }} · {{ item.payment_count }}</span><strong>{{ money(item.net_collected) }}</strong>
-            </div>
-            <p v-if="!data.payments.by_method.length" class="empty">No payments in this range.</p>
-          </article>
         </div>
       </section>
     </template>
@@ -230,12 +305,12 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Page heading banner ---------- */
+/* ---------- Banner ---------- */
 .page-heading {
   position: relative;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
   padding: 26px 28px;
   border-radius: 14px;
@@ -278,20 +353,23 @@ onMounted(async () => {
   letter-spacing: 0.14em;
 }
 
+.eyebrow.dark {
+  color: var(--blue);
+}
+
 .muted {
+  margin: 4px 0 0;
   color: var(--muted);
   font-size: 14px;
 }
 
-.section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
+.loading {
+  padding: 24px 0;
+  text-align: center;
 }
 
-.section-heading h2 {
-  margin: 0;
+.section {
+  margin-top: 20px;
 }
 
 /* ---------- Filters ---------- */
@@ -302,6 +380,10 @@ onMounted(async () => {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
+}
+
+.panel {
+  box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
 }
 
 .filters {
@@ -329,6 +411,7 @@ select {
   border-radius: 8px;
   background: var(--field);
   color: var(--text);
+  font: inherit;
   transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
@@ -352,6 +435,7 @@ select:focus {
   padding: 9px 16px;
   border: 0;
   border-radius: 8px;
+  font: inherit;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s, transform 0.1s;
@@ -366,13 +450,14 @@ select:focus {
   background: var(--blue-hover);
 }
 
-.secondary-button {
-  background: #e3ebf6;
-  color: var(--navy-deep);
+.page-heading .secondary-button {
+  border: 1px solid rgb(255 255 255 / 28%);
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
 }
 
-.secondary-button:hover:not(:disabled) {
-  background: #d3e0f0;
+.page-heading .secondary-button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 22%);
 }
 
 .primary-button:active:not(:disabled),
@@ -386,26 +471,6 @@ select:focus {
   cursor: not-allowed;
 }
 
-/* buttons placed inside the banner */
-.page-heading .primary-button {
-  background: #fff;
-  color: var(--navy-deep);
-}
-
-.page-heading .primary-button:hover:not(:disabled) {
-  background: #e3effb;
-}
-
-.page-heading .secondary-button {
-  border: 1px solid rgb(255 255 255 / 28%);
-  background: rgb(255 255 255 / 12%);
-  color: #fff;
-}
-
-.page-heading .secondary-button:hover:not(:disabled) {
-  background: rgb(255 255 255 / 22%);
-}
-
 .inline-error {
   padding: 12px 14px;
   border-left: 3px solid var(--danger);
@@ -417,26 +482,29 @@ select:focus {
 /* ---------- KPI cards ---------- */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
   margin: 18px 0;
 }
 
 .kpi {
-  position: relative;
   border-top: 3px solid var(--blue);
 }
 
-.kpi:nth-child(4n + 2) {
+.kpi:nth-child(5n + 2) {
   border-top-color: var(--sky);
 }
 
-.kpi:nth-child(4n + 3) {
+.kpi:nth-child(5n + 3) {
   border-top-color: var(--ok);
 }
 
-.kpi:nth-child(4n) {
+.kpi:nth-child(5n + 4) {
   border-top-color: var(--warn);
+}
+
+.kpi:nth-child(5n) {
+  border-top-color: var(--danger);
 }
 
 .kpi span {
@@ -456,24 +524,68 @@ select:focus {
   line-height: 1.1;
 }
 
-/* ---------- Sections and trend chart ---------- */
-.section {
-  margin-top: 20px;
+.kpi-sub {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 13px;
 }
 
-.section h2,
-.panel h3 {
-  margin-top: 0;
+/* ---------- Headings in panels ---------- */
+.panel h2,
+.panel h3,
+.finance-heading h2 {
+  margin: 0;
   color: var(--navy-deep);
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 600;
 }
 
+.panel h2,
+.finance-heading h2 {
+  font-size: 21px;
+}
+
+.panel h3 {
+  font-size: 18px;
+}
+
+.section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.count-badge {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e0eefc;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---------- Two-column rows ---------- */
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.stack {
+  display: grid;
+  gap: 18px;
+}
+
+/* ---------- Trend chart ---------- */
 .trend {
   display: flex;
   gap: 8px;
   align-items: stretch;
-  height: 220px;
+  height: 230px;
   margin-top: 22px;
   padding: 0 2px;
   overflow-x: auto;
@@ -500,7 +612,7 @@ select:focus {
 }
 
 .bar-stack {
-  height: 180px;
+  height: 190px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -534,8 +646,7 @@ select:focus {
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 18px;
-  margin-top: 14px;
+  gap: 16px;
   color: var(--muted);
   font-size: 12px;
 }
@@ -558,27 +669,80 @@ select:focus {
   background: var(--danger);
 }
 
-/* ---------- Breakdown and tables ---------- */
-.content-grid {
-  display: grid;
-  grid-template-columns: minmax(230px, 1fr) minmax(0, 2fr);
-  gap: 18px;
+/* ---------- Status breakdown ---------- */
+.status-block {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.status-block:last-child {
+  border-bottom: 0;
 }
 
 .status-row {
   display: flex;
   justify-content: space-between;
-  padding: 13px 0;
+  align-items: center;
+  padding: 12px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.status-block .status-row {
+  padding: 0 0 8px;
+  border-bottom: 0;
 }
 
 .status-row strong {
   color: var(--navy-deep);
 }
 
+.status-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  text-transform: capitalize;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--blue);
+}
+
+.mini-track {
+  height: 8px;
+  border-radius: 8px;
+  background: #e8eef7;
+  overflow: hidden;
+}
+
+.mini-track i {
+  display: block;
+  height: 100%;
+  border-radius: 8px;
+  background: var(--blue);
+}
+
+.method {
+  text-transform: capitalize;
+}
+
+.method em {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--field);
+  color: var(--blue);
+  font-size: 11.5px;
+  font-style: normal;
+  font-weight: 700;
+}
+
+/* ---------- Tables ---------- */
 .table-wrap {
   overflow: auto;
-  margin-top: 12px;
+  margin-top: 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
 }
@@ -608,6 +772,15 @@ th {
   text-transform: uppercase;
 }
 
+.num {
+  text-align: right;
+}
+
+.strong {
+  color: var(--navy-deep);
+  font-weight: 600;
+}
+
 tbody tr:last-child td {
   border-bottom: 0;
 }
@@ -616,13 +789,51 @@ tbody tr:hover {
   background: #f6f9fd;
 }
 
+.rate {
+  display: inline-block;
+  min-width: 56px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.rate.good {
+  background: #e3f4ea;
+  color: #1f6b41;
+}
+
+.rate.mid {
+  background: #fbf0d3;
+  color: #8a5d00;
+}
+
+.rate.low {
+  background: #fdeceb;
+  color: var(--danger);
+}
+
 .empty {
   padding: 26px;
   text-align: center;
   color: var(--muted);
 }
 
-/* ---------- Collection bars ---------- */
+/* ---------- Finance ---------- */
+.finance {
+  padding-top: 8px;
+  border-top: 1px dashed #b6c8de;
+}
+
+.finance-heading {
+  margin-top: 22px;
+}
+
+.collection-list {
+  margin-top: 14px;
+}
+
 .collection-row {
   display: grid;
   grid-template-columns: 56px minmax(80px, 1fr) 120px;
@@ -630,6 +841,11 @@ tbody tr:hover {
   align-items: center;
   padding: 8px 0;
   font-size: 12.5px;
+}
+
+.collection-row strong {
+  text-align: right;
+  color: var(--navy-deep);
 }
 
 .collection-track {
@@ -647,13 +863,15 @@ tbody tr:hover {
 }
 
 /* ---------- Responsive ---------- */
+@media (max-width: 1000px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 850px) {
   .filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .content-grid {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -664,6 +882,7 @@ tbody tr:hover {
 
   .page-heading {
     flex-direction: column;
+    align-items: flex-start;
     padding: 22px 20px;
   }
 
@@ -681,6 +900,10 @@ tbody tr:hover {
 
   .kpi strong {
     font-size: 22px;
+  }
+
+  .section-heading {
+    flex-direction: column;
   }
 }
 
