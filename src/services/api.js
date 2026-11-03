@@ -123,16 +123,10 @@ export async function login(username, password) {
   return response.data
 }
 
-export async function register(fullName, username, email, password, passwordConfirmation) {
+export async function register(profile) {
   const response = await apiRequest('/register', {
     method: 'POST',
-    body: {
-      full_name: fullName,
-      username,
-      email,
-      password,
-      password_confirmation: passwordConfirmation
-    }
+    body: profile
   })
   return response.data
 }

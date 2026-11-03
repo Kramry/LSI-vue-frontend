@@ -15,11 +15,14 @@ interface DocumentRecord {
 }
 interface Choice { id: number | string; label: string }
 interface Requirement { requirement_id: number; class_id: number; class_name: string; required_document_name: string }
+interface TraineeClass { class_id: number; class_name: string; program_id: number; program_name: string }
 interface DocumentsData {
   records: DocumentRecord[]
   can_upload: boolean
   can_manage_documents: boolean
+  can_manage_requirements: boolean
   document_requirements: Requirement[]
+  trainee_classes: TraineeClass[]
   document_options: { trainees: Choice[]; classes: Choice[] }
 }
 
@@ -55,6 +58,15 @@ const filteredRecords = computed(() => {
     return matchesSearch && matchesStatus && matchesAccess
   })
 })
+const traineeRequirements = computed(() => data.value?.document_requirements || [])
+
+function requirementStatus(requirement: Requirement) {
+  const submitted = (data.value?.records || []).find((item) =>
+    String(item.class_id || '') === String(requirement.class_id) && item.document_name === requirement.required_document_name
+  )
+  if (!submitted) return 'Not submitted'
+  return submitted.review_status === 'approved' ? 'Approved' : submitted.review_status === 'rejected' ? 'Needs resubmission' : 'Pending review'
+}
 
 async function load() {
   loading.value = true
@@ -145,11 +157,11 @@ async function saveRequirement() {
   notice.value = ''
   try {
     const response = await apiPost('/certificate-requirements/save', {
-      class_id: requirementClassId.value,
+      class_id: classId.value,
       required_document_name: requirementName.value,
     })
     notice.value = response.message || 'Required document added.'
-    requirementClassId.value = ''
+    classId.value = ''
     requirementName.value = ''
     await load()
   } catch (reason) {
@@ -346,7 +358,37 @@ onMounted(async () => {
       </section>
     </div>
 
-    <section v-if="data?.can_manage_documents" class="panel requirements-panel">
+    <section v-if="isTrainee" class="panel requirements-panel">
+      <div class="section-heading">
+        <div>
+          <h2>My class requirements</h2>
+          <p class="muted">These are the programs and classes you are enrolled in, with the documents you must submit.</p>
+        </div>
+      </div>
+      <div v-if="data?.trainee_classes?.length" class="trainee-classes">
+        <article v-for="item in data.trainee_classes" :key="item.class_id" class="trainee-class">
+          <span class="eyebrow">Program</span>
+          <strong>{{ item.program_name }}</strong>
+          <span>{{ item.class_name }}</span>
+        </article>
+      </div>
+      <p v-else class="empty">You are not assigned to a class yet.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Class</th><th>Required document</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr v-for="item in traineeRequirements" :key="item.requirement_id">
+              <td>{{ item.class_name }}</td>
+              <td>{{ item.required_document_name }}</td>
+              <td><span class="status" :class="{ approved: requirementStatus(item) === 'Approved' }">{{ requirementStatus(item) }}</span></td>
+            </tr>
+            <tr v-if="!traineeRequirements.length"><td colspan="3" class="empty">No document requirements configured for your assigned classes.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section v-if="data?.can_manage_requirements" class="panel requirements-panel">
       <div class="section-heading">
         <div>
           <h2>Required documents by class</h2>
@@ -696,6 +738,29 @@ onMounted(async () => {
 
 .requirements-panel {
   margin-top: 20px;
+}
+
+.trainee-classes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.trainee-class {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafd;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.trainee-class strong {
+  color: var(--navy);
+  font-size: 15px;
 }
 
 .requirement-form {

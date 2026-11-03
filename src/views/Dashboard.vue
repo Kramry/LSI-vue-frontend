@@ -183,8 +183,8 @@ onMounted(async () => {
           <article class="panel quick-actions">
             <h2>Quick links</h2>
             <p class="muted">Go to common tasks</p>
-            <RouterLink to="/trainees"><span>Manage trainees</span><b aria-hidden="true">→</b></RouterLink>
-            <RouterLink to="/attendance"><span>View attendance</span><b aria-hidden="true">→</b></RouterLink>
+            <RouterLink v-if="isStaff" to="/trainees"><span>Manage trainees</span><b aria-hidden="true">→</b></RouterLink>
+            <RouterLink v-if="role !== 'trainee'" to="/attendance"><span>View attendance</span><b aria-hidden="true">→</b></RouterLink>
             <RouterLink v-if="isStaff" to="/payments"><span>Manage payments</span><b aria-hidden="true">→</b></RouterLink>
             <RouterLink v-if="isStaff" to="/analytics"><span>View analytics</span><b aria-hidden="true">→</b></RouterLink>
             <RouterLink v-if="isStaff" to="/documents"><span>Review documents</span><b aria-hidden="true">→</b></RouterLink>

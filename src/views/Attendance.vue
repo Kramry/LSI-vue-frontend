@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import QRCode from 'qrcode'
 import QrScanner from 'qr-scanner'
-import { apiGet, apiPost, ApiError, scanAttendance } from '../services/api'
+import { apiGet, apiPost, ApiError, getSession, scanAttendance } from '../services/api'
 import {
   enqueueScan,
   listQueuedScans,
@@ -49,6 +50,8 @@ const selectedClass = ref('')
 const selectedSchedule = ref('')
 const scanAction = ref<'in' | 'out'>('in')
 const qrCode = ref('')
+const traineeQrCode = ref('')
+const traineeQrImage = ref('')
 const loading = ref(true)
 const loadingSchedules = ref(false)
 const submitting = ref(false)
@@ -121,6 +124,7 @@ async function loadPage() {
       trainees: [],
       classes: classes.value.map((item) => ({ id: item.class_id, label: item.class_name }))
     }
+
     const firstClass = classes.value[0]
     if (!selectedClass.value && firstClass) {
       selectedClass.value = String(firstClass.class_id)
@@ -134,6 +138,20 @@ async function loadPage() {
     pageError.value = reason instanceof Error ? reason.message : 'Unable to load attendance.'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadTraineeQr() {
+  try {
+    const session = await getSession()
+    if (session.user?.role !== 'trainee') return
+    const response = await apiGet<{ trainee: { qr_code?: string } | null }>('/modules/profile')
+    traineeQrCode.value = response.data.trainee?.qr_code || ''
+    traineeQrImage.value = traineeQrCode.value
+      ? await QRCode.toDataURL(traineeQrCode.value, { margin: 2, width: 220 })
+      : ''
+  } catch (reason) {
+    pageError.value = reason instanceof Error ? reason.message : 'Unable to load your QR code.'
   }
 }
 
@@ -410,6 +428,7 @@ watch(selectedClass, (classId) => {
 onMounted(async () => {
   try {
     await loadPage()
+    await loadTraineeQr()
     await refreshQueuedScans()
     if (navigator.onLine) await syncQueuedScans()
   } catch (reason) {
@@ -442,6 +461,16 @@ onUnmounted(() => {
     </header>
 
     <p v-if="pageError" class="inline-error" role="alert">{{ pageError }}</p>
+
+    <section v-if="traineeQrImage" class="panel trainee-qr-panel">
+      <div>
+        <p class="eyebrow">Your attendance QR</p>
+        <h2>Show this code when checking in</h2>
+        <p class="muted">Present this QR code to the attendance scanner.</p>
+        <strong>{{ traineeQrCode }}</strong>
+      </div>
+      <img class="trainee-qr-image" :src="traineeQrImage" alt="Your attendance QR code">
+    </section>
 
     <section class="panel scanner-panel">
       <div class="section-heading">
@@ -699,6 +728,8 @@ onUnmounted(() => {
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
+.trainee-qr-panel { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.trainee-qr-image { width: 220px; height: 220px; }
 
 .manual-panel {
   display: grid;

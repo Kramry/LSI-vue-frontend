@@ -14,7 +14,7 @@ interface ModuleField {
 interface ModulePayload {
   title: string
   section: string
-  records: Array<Record<string, string | number | null>>
+  records: Array<Record<string, string | number | string[] | null>>
   columns: string[]
   primary_key: string
   fields: ModuleField[]
@@ -46,7 +46,7 @@ function blankForm() {
   for (const field of module.value?.fields || []) form[field.name] = ''
 }
 
-function normalizeValue(field: ModuleField, value: string | number | null | undefined) {
+function normalizeValue(field: ModuleField, value: string | number | string[] | null | undefined) {
   if (value === null || value === undefined) return ''
   const stringValue = String(value)
   return field.type === 'time' ? stringValue.slice(0, 5) : stringValue
@@ -58,7 +58,7 @@ function startCreate() {
   blankForm()
 }
 
-function startEdit(record: Record<string, string | number | null>) {
+function startEdit(record: Record<string, string | number | string[] | null>) {
   if (!module.value) return
   const id = Number(record[module.value.primary_key])
   if (!Number.isInteger(id) || id < 1) return
@@ -106,7 +106,7 @@ async function saveRecord() {
   }
 }
 
-async function deleteRecord(record: Record<string, string | number | null>) {
+async function deleteRecord(record: Record<string, string | number | string[] | null>) {
   if (!module.value) return
   const id = Number(record[module.value.primary_key])
   if (!Number.isInteger(id) || id < 1) return
@@ -245,6 +245,7 @@ onMounted(() => {
             <thead>
               <tr>
                 <th v-for="column in module.columns" :key="column">{{ columnLabel(column) }}</th>
+                <th v-if="section === 'classes'">Trainee requirements</th>
                 <th v-if="module.can_manage" class="actions-col">Actions</th>
               </tr>
             </thead>
@@ -252,6 +253,12 @@ onMounted(() => {
               <tr v-for="record in module.records" :key="String(record[module.primary_key])">
                 <td v-for="column in module.columns" :key="column">
                   {{ record[column] ?? '—' }}
+                </td>
+                <td v-if="section === 'classes'">
+                  <ul v-if="Array.isArray(record.requirements) && record.requirements.length" class="requirements-list">
+                    <li v-for="requirement in record.requirements" :key="requirement">{{ requirement }}</li>
+                  </ul>
+                  <span v-else class="muted">None listed</span>
                 </td>
                 <td v-if="module.can_manage" class="row-actions">
                   <button class="text-button" @click="startEdit(record)">Edit</button>
@@ -560,6 +567,17 @@ button:disabled {
   margin-top: 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
+}
+
+.requirements-list {
+  min-width: 190px;
+  margin: 0;
+  padding-left: 18px;
+  color: var(--text);
+}
+
+.requirements-list li + li {
+  margin-top: 4px;
 }
 
 table {

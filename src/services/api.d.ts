@@ -30,13 +30,7 @@ export function apiPost<T = Record<string, unknown>>(path: string, body: unknown
 export function apiFileUrl(path: string): string
 export function getSession(): Promise<SessionData>
 export function login(username: string, password: string): Promise<SessionData>
-export function register(
-  fullName: string,
-  username: string,
-  email: string,
-  password: string,
-  passwordConfirmation: string
-): Promise<{ registered: true }>
+export function register(profile: Record<string, string>): Promise<{ registered: true }>
 export function logout(): Promise<{ authenticated: false }>
 export function scanAttendance(scan: {
   qr_code: string

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import QRCode from 'qrcode'
 import { onMounted, ref } from 'vue'
 import { apiGet, apiPost } from '../services/api'
 
@@ -19,6 +20,7 @@ interface TraineeProfile {
 
 const user = ref<ProfileUser | null>(null)
 const trainee = ref<TraineeProfile | null>(null)
+const qrImage = ref('')
 const loading = ref(true)
 const savingProfile = ref(false)
 const savingPassword = ref(false)
@@ -34,6 +36,9 @@ async function loadProfile() {
     const response = await apiGet<{ user: ProfileUser; trainee: TraineeProfile | null }>('/modules/profile')
     user.value = response.data.user
     trainee.value = response.data.trainee
+    qrImage.value = trainee.value?.qr_code
+      ? await QRCode.toDataURL(trainee.value.qr_code, { margin: 2, width: 220 })
+      : ''
     profileForm.value = trainee.value
       ? {
           full_name: '',
@@ -139,6 +144,7 @@ onMounted(() => {
     <section v-if="trainee" class="panel trainee-id">
       <p class="eyebrow">Trainee QR ID</p>
       <h2>{{ trainee.first_name }} {{ trainee.last_name }}</h2>
+      <img v-if="qrImage" class="qr-image" :src="qrImage" :alt="`QR code for ${trainee.first_name} ${trainee.last_name}`">
       <p class="muted">{{ trainee.qr_code || 'QR code is managed by the training center.' }}</p>
     </section>
   </main>
@@ -176,5 +182,6 @@ button:disabled { opacity: .6; cursor: wait; }
 .inline-error { padding: 10px 12px; border-left: 3px solid #c52d2d; background: #fff0f0; color: #b4281f; }
 .inline-success { color: var(--ok); font-weight: 700; }
 .trainee-id { max-width: 310px; text-align: center; }
+.qr-image { display: block; width: 220px; height: 220px; margin: 0 auto 12px; }
 @media (max-width: 760px) { .profile-grid { grid-template-columns: 1fr; } }
 </style>

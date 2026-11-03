@@ -53,10 +53,9 @@ onMounted(async () => {
       </div>
 
       <div class="pitch">
-        <h2>Every session,<br><em>accounted for.</em></h2>
+        <h2>LANGUAGE SKILLS INSTITUTE,<br><em>Oriental Mindoro.</em></h2>
         <p>
-          Real-time attendance and LSI trainee monitoring, built around the
-          people and programs that move training forward.
+          Empowering Communication, Building Futures.
         </p>
       </div>
 
@@ -102,7 +101,7 @@ onMounted(async () => {
   --danger: #b4281f;
 
   display: grid;
-  grid-template-columns: 1.05fr 1fr;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
   min-height: 100vh;
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   color: var(--text);
@@ -112,6 +111,7 @@ onMounted(async () => {
 /* ---------- Left brand panel ---------- */
 .brand-panel {
   position: relative;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -173,7 +173,7 @@ onMounted(async () => {
 .pitch h2 {
   margin: 0 0 24px;
   font-family: 'Fraunces', Georgia, serif;
-  font-size: clamp(40px, 5.4vw, 72px);
+  font-size: clamp(40px, 5vw, 72px);
   font-weight: 600;
   line-height: 1.05;
   letter-spacing: -0.02em;
@@ -199,6 +199,7 @@ onMounted(async () => {
 
 /* ---------- Right form panel ---------- */
 .form-panel {
+  min-width: 0;
   display: grid;
   place-items: center;
   padding: 40px clamp(24px, 6vw, 80px);
@@ -328,7 +329,7 @@ button:disabled {
 }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 860px) {
+@media (max-width: 760px) {
   .login-page {
     grid-template-columns: 1fr;
   }

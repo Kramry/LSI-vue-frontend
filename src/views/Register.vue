@@ -1,12 +1,20 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { register } from '../services/api'
+import { apiGet, register } from '../services/api'
 
 const router = useRouter()
-const fullName = ref('')
+const firstName = ref('')
+const lastName = ref('')
 const username = ref('')
 const email = ref('')
+const sex = ref('')
+const dateOfBirth = ref('')
+const address = ref('')
+const contactNumber = ref('')
+const course = ref('')
+const programId = ref('')
+const programs = ref<{ id: number | string; label: string }[]>([])
 const password = ref('')
 const passwordConfirmation = ref('')
 const loading = ref(false)
@@ -16,13 +24,21 @@ async function submit() {
   error.value = ''
   loading.value = true
   try {
-    await register(
-      fullName.value,
-      username.value,
-      email.value,
-      password.value,
-      passwordConfirmation.value
-    )
+    await register({
+      full_name: `${firstName.value} ${lastName.value}`.trim(),
+      first_name: firstName.value,
+      last_name: lastName.value,
+      username: username.value,
+      email: email.value,
+      sex: sex.value,
+      date_of_birth: dateOfBirth.value,
+      address: address.value,
+      contact_number: contactNumber.value,
+      course: course.value,
+      program_id: programId.value,
+      password: password.value,
+      password_confirmation: passwordConfirmation.value
+    })
     await router.replace({ name: 'login' })
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to create your account.'
@@ -30,6 +46,15 @@ async function submit() {
     loading.value = false
   }
 }
+
+onMounted(async () => {
+  try {
+    const response = await apiGet<{ programs: { id: number | string; label: string }[] }>('/registration-options')
+    programs.value = response.data.programs || []
+  } catch {
+    programs.value = []
+  }
+})
 </script>
 
 <template>
@@ -57,14 +82,28 @@ async function submit() {
         <h1>Join SmartTrack</h1>
         <p class="intro">Register as a trainee to get started.</p>
 
-        <label for="full-name">Full name</label>
-        <input id="full-name" v-model.trim="fullName" autocomplete="name" required>
+        <div class="two-col">
+          <label for="first-name">First name<input id="first-name" v-model.trim="firstName" autocomplete="given-name" required></label>
+          <label for="last-name">Last name<input id="last-name" v-model.trim="lastName" autocomplete="family-name" required></label>
+        </div>
 
         <label for="username">Username</label>
         <input id="username" v-model.trim="username" autocomplete="username" required>
 
         <label for="email">Email</label>
         <input id="email" v-model.trim="email" type="email" autocomplete="email" required>
+
+        <div class="two-col">
+          <label for="sex">Sex<select id="sex" v-model="sex" required><option value="" disabled>Select sex</option><option>Male</option><option>Female</option><option>Other</option></select></label>
+          <label for="date-of-birth">Date of birth<input id="date-of-birth" v-model="dateOfBirth" type="date"></label>
+        </div>
+
+        <label for="address">Address<textarea id="address" v-model.trim="address" rows="2"></textarea></label>
+        <div class="two-col">
+          <label for="contact-number">Contact number<input id="contact-number" v-model.trim="contactNumber" required></label>
+          <label for="course">Course / qualification<input id="course" v-model.trim="course" required></label>
+        </div>
+        <label for="program">Training program<select id="program" v-model="programId"><option value="">Not assigned yet</option><option v-for="program in programs" :key="String(program.id)" :value="String(program.id)">{{ program.label }}</option></select></label>
 
         <label for="password">Password</label>
         <input id="password" v-model="password" type="password" minlength="10" autocomplete="new-password" required>
@@ -180,6 +219,9 @@ input {
   border-radius: 8px;
   background: var(--field);
 }
+select, textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); font: inherit; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label input, label select, label textarea { display: block; margin-top: 6px; }
 button {
   display: flex;
   justify-content: space-between;
@@ -202,5 +244,6 @@ button:disabled { cursor: wait; opacity: 0.65; }
   .brand-panel { min-height: 260px; padding: 32px 24px; }
   .pitch { margin: 48px 0 20px; }
   .pitch h2 { font-size: 42px; }
+  .two-col { grid-template-columns: 1fr; }
 }
 </style>

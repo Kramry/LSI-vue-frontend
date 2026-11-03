@@ -31,12 +31,16 @@ const router = createRouter({
           path: 'programs',
           component: () => import('../views/ManagementModule.vue'),
           props: { section: 'programs' },
-          meta: { roles: ['administrator', 'staff'] }
+          meta: { roles: ['administrator', 'staff', 'instructor'] }
         },
         {
           path: 'classes',
-          component: () => import('../views/ManagementModule.vue'),
-          props: { section: 'classes' },
+          component: () => import('../views/Classes.vue'),
+          meta: { roles: ['administrator', 'staff', 'instructor'] }
+        },
+        {
+          path: 'classes/:id',
+          component: () => import('../views/ClassDetail.vue'),
           meta: { roles: ['administrator', 'staff', 'instructor'] }
         },
         {
@@ -66,7 +70,7 @@ const router = createRouter({
         {
           path: 'assessments',
           component: () => import('../views/Assessments.vue'),
-          meta: { roles: ['administrator', 'staff'] }
+          meta: { roles: ['administrator', 'staff', 'instructor'] }
         },
         {
           path: 'payments',
