@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { apiGet } from '../services/api'
+import { apiGet, apiPost, ApiError } from '../services/api'
 
 interface ClassCard {
   class_id: number
@@ -29,7 +29,19 @@ const programId = ref('')
 const instructorId = ref('')
 const status = ref('')
 const role = ref('')
+const formOpen = ref(false)
+const saving = ref(false)
+const formError = ref('')
+const form = reactive({
+  class_name: '',
+  program_id: '',
+  instructor_id: '',
+  start_date: '',
+  end_date: '',
+  status: 'active'
+})
 
+const isStaff = computed(() => ['administrator', 'staff'].includes(role.value))
 const filteredClasses = computed(() => data.value.classes.filter((item) => {
   const term = search.value.trim().toLowerCase()
   return (!term || [item.class_name, item.program_name, item.room].some((value) => String(value || '').toLowerCase().includes(term)))
@@ -37,6 +49,49 @@ const filteredClasses = computed(() => data.value.classes.filter((item) => {
     && (!instructorId.value || String((item as ClassCard & { instructor_id?: number }).instructor_id) === instructorId.value)
     && (!status.value || item.teaching_status === status.value)
 }))
+
+function resetForm() {
+  form.class_name = ''
+  form.program_id = ''
+  form.instructor_id = ''
+  form.start_date = ''
+  form.end_date = ''
+  form.status = 'active'
+}
+
+function openCreateForm() {
+  resetForm()
+  formError.value = ''
+  formOpen.value = true
+}
+
+function closeCreateForm() {
+  formOpen.value = false
+  formError.value = ''
+}
+
+async function saveClass() {
+  saving.value = true
+  formError.value = ''
+  try {
+    await apiPost('/modules/classes/save', {
+      class_name: form.class_name,
+      program_id: form.program_id,
+      instructor_id: form.instructor_id || null,
+      start_date: form.start_date || null,
+      end_date: form.end_date || null,
+      status: form.status
+    })
+    closeCreateForm()
+    await load()
+  } catch (reason) {
+    formError.value = reason instanceof ApiError
+      ? reason.message
+      : reason instanceof Error ? reason.message : 'Unable to create this class.'
+  } finally {
+    saving.value = false
+  }
+}
 
 async function load() {
   loading.value = true
@@ -74,11 +129,63 @@ onMounted(async () => {
           <strong>{{ filteredClasses.length }}</strong>
           <span>{{ filteredClasses.length === 1 ? 'class' : 'classes' }}</span>
         </div>
+        <button v-if="isStaff" class="primary-button header-button" @click="openCreateForm">+ Add Class</button>
         <button class="secondary-button header-button" :disabled="loading" @click="load">Refresh</button>
       </div>
     </header>
 
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
+
+    <section v-if="formOpen && isStaff" class="panel form-panel">
+      <div class="form-heading">
+        <div>
+          <h2>Add Class</h2>
+          <p class="muted">Create a class for a training program.</p>
+        </div>
+        <button class="secondary-button" type="button" @click="closeCreateForm">Cancel</button>
+      </div>
+      <p v-if="formError" class="inline-error" role="alert">{{ formError }}</p>
+      <form class="class-form" @submit.prevent="saveClass">
+        <label>
+          <span>Class name <em>*</em></span>
+          <input v-model="form.class_name" required>
+        </label>
+        <label>
+          <span>Program <em>*</em></span>
+          <select v-model="form.program_id" required>
+            <option value="">Choose a program</option>
+            <option v-for="item in data.programs" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+          </select>
+        </label>
+        <label>
+          <span>Instructor</span>
+          <select v-model="form.instructor_id">
+            <option value="">Unassigned</option>
+            <option v-for="item in data.instructors" :key="item.id" :value="String(item.id)">{{ item.label }}</option>
+          </select>
+        </label>
+        <label>
+          <span>Start date</span>
+          <input v-model="form.start_date" type="date">
+        </label>
+        <label>
+          <span>End date</span>
+          <input v-model="form.end_date" type="date">
+        </label>
+        <label>
+          <span>Status <em>*</em></span>
+          <select v-model="form.status" required>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </label>
+        <div class="form-actions">
+          <button class="primary-button" type="submit" :disabled="saving">
+            {{ saving ? 'Saving...' : 'Create class' }}
+          </button>
+        </div>
+      </form>
+    </section>
 
     <section class="panel filters" aria-label="Filters">
       <label class="search-field">
@@ -289,6 +396,76 @@ onMounted(async () => {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+}
+
+.form-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.form-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.form-heading h2 {
+  margin: 0;
+  color: var(--navy-deep);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.form-heading p {
+  margin: 5px 0 0;
+}
+
+.class-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.class-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.class-form label em {
+  color: var(--danger);
+  font-style: normal;
+}
+
+.class-form input,
+.class-form select {
+  width: 100%;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+}
+
+.class-form input:focus,
+.class-form select:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  grid-column: 1 / -1;
 }
 
 .filters {
@@ -610,6 +787,14 @@ onMounted(async () => {
 
   .actions {
     grid-template-columns: 1fr;
+  }
+
+  .class-form {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    grid-column: auto;
   }
 
   .stats {
