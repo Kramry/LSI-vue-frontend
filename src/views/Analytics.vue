@@ -1,6 +1,33 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { apiGet, getSession } from '../services/api'
+import { Line, Doughnut, Bar } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+)
 
 interface AnalyticsData {
   filters: { start_date: string; end_date: string; class_id: number | null }
@@ -22,6 +49,95 @@ interface AnalyticsData {
     by_fee_kind: Array<{ fee_kind: string; net_collected: number }>
     by_method: Array<{ method: string; payment_count: number; net_collected: number }>
   }
+  training?: {
+    summary: {
+      total_enrolled: number
+      active_trainees: number
+      inactive_trainees: number
+      completed_trainings: number
+      completion_rate: number
+    }
+    trainees_per_batch: Array<{
+      class_id: number
+      class_name: string
+      program_name: string
+      trainee_count: number
+      start_date: string
+      end_date: string
+    }>
+    monthly_trends: Array<{ month: string; new_registrations: number }>
+    program_popularity: Array<{
+      program_id: number
+      program_name: string
+      program_code: string
+      trainee_count: number
+      class_count: number
+    }>
+  }
+  documents?: {
+    summary: {
+      total_submitted: number
+      verified: number
+      rejected: number
+      pending: number
+      missing: number
+      completion_rate: number
+    }
+    completion_by_class: Array<{
+      class_id: number
+      class_name: string
+      required_count: number
+      submitted_count: number
+      completion_rate: number
+    }>
+    document_types: Array<{
+      document_name: string
+      count: number
+      approved: number
+      rejected: number
+      pending: number
+    }>
+  }
+  certificates?: {
+    summary: {
+      total_issued: number
+      issued: number
+      pending: number
+      revoked: number
+    }
+    certificates_per_batch: Array<{
+      class_id: number
+      class_name: string
+      program_name: string
+      certificate_count: number
+      trainee_count: number
+    }>
+    monthly_issuance: Array<{ month: string; certificates_issued: number }>
+    eligibility: {
+      total_eligible: number
+      eligible: number
+      not_eligible: number
+      avg_attendance: number
+    }
+  }
+  announcements?: {
+    summary: {
+      total_published: number
+      published: number
+      draft: number
+      email_notifications: number
+      sms_notifications: number
+      read_notifications: number
+      unread_notifications: number
+      failed_notifications: number
+    }
+    read_statistics: Array<{
+      announcement_id: number
+      title: string
+      created_at: string
+      unique_readers: number
+    }>
+  }
 }
 
 const today = new Date()
@@ -39,12 +155,149 @@ const error = ref('')
 const isFinance = computed(() => ['administrator', 'staff'].includes(role.value))
 const maxTrendValue = computed(() => Math.max(1, ...(data.value?.trend.map((item) => item.present + item.late + item.absent) ?? [1])))
 
+// Chart data configurations
+const attendanceTrendData = computed(() => ({
+  labels: data.value?.trend.map(item => item.label) || [],
+  datasets: [
+    { label: 'Present', data: data.value?.trend.map(item => item.present) || [], borderColor: '#2d8a57', backgroundColor: '#2d8a57', tension: 0.25 },
+    { label: 'Late', data: data.value?.trend.map(item => item.late) || [], borderColor: '#d99100', backgroundColor: '#d99100', tension: 0.25 },
+    { label: 'Absent', data: data.value?.trend.map(item => item.absent) || [], borderColor: '#c4372c', backgroundColor: '#c4372c', tension: 0.25 }
+  ]
+}))
+
+const attendanceStatusData = computed(() => ({
+  labels: Object.keys(data.value?.status || {}),
+  datasets: [{ data: Object.values(data.value?.status || {}), backgroundColor: ['#2d8a57', '#d99100', '#c4372c'] }]
+}))
+
+const trainingTrendData = computed(() => ({
+  labels: data.value?.training?.monthly_trends.map(item => item.month) || [],
+  datasets: [{ label: 'New registrations', data: data.value?.training?.monthly_trends.map(item => item.new_registrations) || [], borderColor: '#265f94', backgroundColor: '#265f94', tension: 0.25 }]
+}))
+
+const trainingProgramsData = computed(() => ({
+  labels: data.value?.training?.program_popularity.map(item => item.program_name) || [],
+  datasets: [{ label: 'Trainees', data: data.value?.training?.program_popularity.map(item => item.trainee_count) || [], backgroundColor: '#265f94' }]
+}))
+
+const docsStatusData = computed(() => ({
+  labels: ['Verified', 'Rejected', 'Pending'],
+  datasets: [{ data: [data.value?.documents?.summary?.verified || 0, data.value?.documents?.summary?.rejected || 0, data.value?.documents?.summary?.pending || 0], backgroundColor: ['#2d8a57', '#c4372c', '#d99100'] }]
+}))
+
+const docsTypesData = computed(() => ({
+  labels: data.value?.documents?.document_types.map(item => item.document_name) || [],
+  datasets: [{ label: 'Count', data: data.value?.documents?.document_types.map(item => item.count) || [], backgroundColor: '#6a4c93' }]
+}))
+
+const certsTrendData = computed(() => ({
+  labels: data.value?.certificates?.monthly_issuance.map(item => item.month) || [],
+  datasets: [{ label: 'Certificates issued', data: data.value?.certificates?.monthly_issuance.map(item => item.certificates_issued) || [], borderColor: '#2d8a57', backgroundColor: '#2d8a57', tension: 0.25 }]
+}))
+
+const certsStatusData = computed(() => ({
+  labels: ['Issued', 'Pending', 'Revoked'],
+  datasets: [{ data: [data.value?.certificates?.summary?.issued || 0, data.value?.certificates?.summary?.pending || 0, data.value?.certificates?.summary?.revoked || 0], backgroundColor: ['#2d8a57', '#d99100', '#c4372c'] }]
+}))
+
+const annTypesData = computed(() => ({
+  labels: ['Email', 'SMS'],
+  datasets: [{ data: [data.value?.announcements?.summary?.email_notifications || 0, data.value?.announcements?.summary?.sms_notifications || 0], backgroundColor: ['#265f94', '#6a4c93'] }]
+}))
+
+const annReadData = computed(() => ({
+  labels: ['Read', 'Unread'],
+  datasets: [{ data: [data.value?.announcements?.summary?.read_notifications || 0, data.value?.announcements?.summary?.unread_notifications || 0], backgroundColor: ['#2d8a57', '#5d6f82'] }]
+}))
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  scales: {
+    y: { beginAtZero: true, ticks: { precision: 0 } }
+  }
+}
+
 function money(value: unknown) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(Number(value || 0))
 }
 
 function barWidth(value: number, max: number) {
   return `${max > 0 ? Math.max(value > 0 ? 2 : 0, (value / max) * 100) : 0}%`
+}
+
+function exportToExcel() {
+  if (!data.value) {
+    alert('Please wait for analytics data to load before exporting.')
+    return
+  }
+  let csv = 'Analytics Report\n'
+  csv += `Generated: ${new Date().toISOString()}\n`
+  csv += `Date Range: ${startDate.value} to ${endDate.value}\n\n`
+
+  csv += 'SUMMARY\n'
+  csv += 'Metric,Value\n'
+  csv += `Active Trainees,${data.value.summary.active_trainees}\n`
+  csv += `Active Classes,${data.value.summary.active_classes}\n`
+  csv += `Attendance Records,${data.value.summary.attendance_records}\n`
+  csv += `Attendance Rate,${data.value.summary.attendance_rate}%\n`
+  csv += `Absent Records,${data.value.summary.absent_records}\n\n`
+
+  if (data.value.training) {
+    csv += 'TRAINING ANALYTICS\n'
+    csv += 'Metric,Value\n'
+    csv += `Total Enrolled,${data.value.training.summary.total_enrolled}\n`
+    csv += `Active Trainees,${data.value.training.summary.active_trainees}\n`
+    csv += `Completed Trainings,${data.value.training.summary.completed_trainings}\n`
+    csv += `Completion Rate,${data.value.training.summary.completion_rate}%\n\n`
+  }
+
+  if (data.value.documents) {
+    csv += 'DOCUMENT ANALYTICS\n'
+    csv += 'Metric,Value\n'
+    csv += `Total Submitted,${data.value.documents.summary.total_submitted}\n`
+    csv += `Verified,${data.value.documents.summary.verified}\n`
+    csv += `Rejected,${data.value.documents.summary.rejected}\n`
+    csv += `Pending,${data.value.documents.summary.pending}\n`
+    csv += `Missing,${data.value.documents.summary.missing}\n\n`
+  }
+
+  if (data.value.certificates) {
+    csv += 'CERTIFICATE ANALYTICS\n'
+    csv += 'Metric,Value\n'
+    csv += `Total Issued,${data.value.certificates.summary.total_issued}\n`
+    csv += `Issued,${data.value.certificates.summary.issued}\n`
+    csv += `Pending,${data.value.certificates.summary.pending}\n`
+    csv += `Revoked,${data.value.certificates.summary.revoked}\n\n`
+  }
+
+  if (data.value.announcements) {
+    csv += 'ANNOUNCEMENT ANALYTICS\n'
+    csv += 'Metric,Value\n'
+    csv += `Total Published,${data.value.announcements.summary.total_published}\n`
+    csv += `Email Notifications,${data.value.announcements.summary.email_notifications}\n`
+    csv += `SMS Notifications,${data.value.announcements.summary.sms_notifications}\n`
+    csv += `Read Notifications,${data.value.announcements.summary.read_notifications}\n`
+    csv += `Failed Notifications,${data.value.announcements.summary.failed_notifications}\n\n`
+  }
+
+  if (data.value.payments) {
+    csv += 'PAYMENT ANALYTICS\n'
+    csv += 'Metric,Value\n'
+    csv += `Net Collected,${data.value.payments.summary.net_collected}\n`
+    csv += `Outstanding Balance,${data.value.payments.summary.outstanding_balance}\n`
+    csv += `Bond Held,${data.value.payments.summary.bond_held}\n\n`
+  }
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  link.setAttribute('href', url)
+  link.setAttribute('download', `analytics_report_${startDate.value}_to_${endDate.value}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
 
 async function load() {
@@ -81,7 +334,10 @@ onMounted(async () => {
         <h1>Analytics</h1>
         <p class="muted">Attendance, class activity, and payment monitoring.</p>
       </div>
-      <button class="secondary-button" :disabled="loading" @click="load">Refresh</button>
+      <div class="button-group">
+        <button class="secondary-button" :disabled="loading" @click="load">Refresh</button>
+        <button class="secondary-button" :disabled="loading || !data" @click="exportToExcel">Export Excel</button>
+      </div>
     </header>
 
     <form class="panel filters" @submit.prevent="load">
@@ -279,6 +535,258 @@ onMounted(async () => {
           </div>
         </div>
       </section>
+
+      <!-- 6. Training Analytics -->
+      <section v-if="isFinance && data.training" class="finance section">
+        <header class="finance-heading">
+          <p class="eyebrow dark">TRAINING / ANALYTICS</p>
+          <h2>Training analytics</h2>
+          <p class="muted">Enrollment statistics, completion rates, and program popularity.</p>
+        </header>
+
+        <div class="kpi-grid">
+          <article class="kpi"><span>Total enrolled</span><strong>{{ data.training.summary.total_enrolled.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Active trainees</span><strong>{{ data.training.summary.active_trainees.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Completed trainings</span><strong>{{ data.training.summary.completed_trainings.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Completion rate</span><strong>{{ data.training.summary.completion_rate }}%</strong></article>
+          <article class="kpi"><span>Inactive trainees</span><strong>{{ data.training.summary.inactive_trainees.toLocaleString() }}</strong></article>
+        </div>
+
+        <div class="split">
+          <article class="panel">
+            <h3>Monthly enrollment trends</h3>
+            <div class="chart-container">
+              <Line :data="trainingTrendData" :options="chartOptions" />
+            </div>
+          </article>
+          <article class="panel">
+            <h3>Program popularity</h3>
+            <div class="chart-container">
+              <Bar :data="trainingProgramsData" :options="chartOptions" />
+            </div>
+          </article>
+        </div>
+
+        <section class="panel section">
+          <div class="section-heading">
+            <div>
+              <h3>Trainees per training batch</h3>
+              <p class="muted">Enrollment by class</p>
+            </div>
+            <span class="count-badge">{{ data.training.trainees_per_batch.length }} batches</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Program</th>
+                  <th class="num">Trainees</th>
+                  <th>Start date</th>
+                  <th>End date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="batch in data.training.trainees_per_batch" :key="batch.class_id">
+                  <td class="strong">{{ batch.class_name }}</td>
+                  <td>{{ batch.program_name }}</td>
+                  <td class="num">{{ batch.trainee_count }}</td>
+                  <td>{{ batch.start_date }}</td>
+                  <td>{{ batch.end_date }}</td>
+                </tr>
+                <tr v-if="!data.training.trainees_per_batch.length"><td colspan="5" class="empty">No training batch data available.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <!-- 7. Document Analytics -->
+      <section v-if="isFinance && data.documents" class="finance section">
+        <header class="finance-heading">
+          <p class="eyebrow dark">DOCUMENTS / ANALYTICS</p>
+          <h2>Document analytics</h2>
+          <p class="muted">Document submission, verification, and completion rates.</p>
+        </header>
+
+        <div class="kpi-grid">
+          <article class="kpi"><span>Total submitted</span><strong>{{ data.documents.summary.total_submitted.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Verified</span><strong>{{ data.documents.summary.verified.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Rejected</span><strong>{{ data.documents.summary.rejected.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Pending</span><strong>{{ data.documents.summary.pending.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Missing</span><strong>{{ data.documents.summary.missing.toLocaleString() }}</strong></article>
+        </div>
+
+        <div class="split">
+          <article class="panel">
+            <h3>Document status distribution</h3>
+            <div class="chart-container">
+              <Doughnut :data="docsStatusData" :options="{ responsive: true, maintainAspectRatio: false }" />
+            </div>
+          </article>
+          <article class="panel">
+            <h3>Document types</h3>
+            <div class="chart-container">
+              <Bar :data="docsTypesData" :options="chartOptions" />
+            </div>
+          </article>
+        </div>
+
+        <section class="panel section">
+          <div class="section-heading">
+            <div>
+              <h3>Document completion by class</h3>
+              <p class="muted">Completion rates per class</p>
+            </div>
+            <span class="count-badge">{{ data.documents.completion_by_class.length }} classes</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th class="num">Required</th>
+                  <th class="num">Submitted</th>
+                  <th class="num">Completion rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="completion in data.documents.completion_by_class" :key="completion.class_id">
+                  <td class="strong">{{ completion.class_name }}</td>
+                  <td class="num">{{ completion.required_count }}</td>
+                  <td class="num">{{ completion.submitted_count }}</td>
+                  <td class="num">{{ completion.completion_rate }}%</td>
+                </tr>
+                <tr v-if="!data.documents.completion_by_class.length"><td colspan="4" class="empty">No document completion data available.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <!-- 8. Certificate Analytics -->
+      <section v-if="isFinance && data.certificates" class="finance section">
+        <header class="finance-heading">
+          <p class="eyebrow dark">CERTIFICATES / ANALYTICS</p>
+          <h2>Certificate analytics</h2>
+          <p class="muted">Certificate issuance, eligibility, and batch statistics.</p>
+        </header>
+
+        <div class="kpi-grid">
+          <article class="kpi"><span>Total issued</span><strong>{{ data.certificates.summary.total_issued.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Pending generation</span><strong>{{ data.certificates.summary.pending.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Revoked</span><strong>{{ data.certificates.summary.revoked.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Eligible trainees</span><strong>{{ data.certificates.eligibility.eligible.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Avg attendance</span><strong>{{ data.certificates.eligibility.avg_attendance }}%</strong></article>
+        </div>
+
+        <div class="split">
+          <article class="panel">
+            <h3>Monthly certificate issuance</h3>
+            <div class="chart-container">
+              <Line :data="certsTrendData" :options="chartOptions" />
+            </div>
+          </article>
+          <article class="panel">
+            <h3>Certificate status</h3>
+            <div class="chart-container">
+              <Doughnut :data="certsStatusData" :options="{ responsive: true, maintainAspectRatio: false }" />
+            </div>
+          </article>
+        </div>
+
+        <section class="panel section">
+          <div class="section-heading">
+            <div>
+              <h3>Certificates per training batch</h3>
+              <p class="muted">Batch statistics</p>
+            </div>
+            <span class="count-badge">{{ data.certificates.certificates_per_batch.length }} batches</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Class</th>
+                  <th>Program</th>
+                  <th class="num">Certificates</th>
+                  <th class="num">Trainees</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="batch in data.certificates.certificates_per_batch" :key="batch.class_id">
+                  <td class="strong">{{ batch.class_name }}</td>
+                  <td>{{ batch.program_name }}</td>
+                  <td class="num">{{ batch.certificate_count }}</td>
+                  <td class="num">{{ batch.trainee_count }}</td>
+                </tr>
+                <tr v-if="!data.certificates.certificates_per_batch.length"><td colspan="4" class="empty">No certificate batch data available.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <!-- 9. Announcement Analytics -->
+      <section v-if="isFinance && data.announcements" class="finance section">
+        <header class="finance-heading">
+          <p class="eyebrow dark">ANNOUNCEMENTS / ANALYTICS</p>
+          <h2>Announcement analytics</h2>
+          <p class="muted">Published announcements and notification statistics.</p>
+        </header>
+
+        <div class="kpi-grid">
+          <article class="kpi"><span>Total published</span><strong>{{ data.announcements.summary.total_published.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Email sent</span><strong>{{ data.announcements.summary.email_notifications.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>SMS sent</span><strong>{{ data.announcements.summary.sms_notifications.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Read notifications</span><strong>{{ data.announcements.summary.read_notifications.toLocaleString() }}</strong></article>
+          <article class="kpi"><span>Failed notifications</span><strong>{{ data.announcements.summary.failed_notifications.toLocaleString() }}</strong></article>
+        </div>
+
+        <div class="split">
+          <article class="panel">
+            <h3>Notification types</h3>
+            <div class="chart-container">
+              <Doughnut :data="annTypesData" :options="{ responsive: true, maintainAspectRatio: false }" />
+            </div>
+          </article>
+          <article class="panel">
+            <h3>Read vs unread</h3>
+            <div class="chart-container">
+              <Doughnut :data="annReadData" :options="{ responsive: true, maintainAspectRatio: false }" />
+            </div>
+          </article>
+        </div>
+
+        <section class="panel section">
+          <div class="section-heading">
+            <div>
+              <h3>Announcement readership</h3>
+              <p class="muted">Read statistics</p>
+            </div>
+            <span class="count-badge">{{ data.announcements.read_statistics.length }} announcements</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Announcement</th>
+                  <th>Published date</th>
+                  <th class="num">Unique readers</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="stat in data.announcements.read_statistics" :key="stat.announcement_id">
+                  <td class="strong">{{ stat.title }}</td>
+                  <td>{{ stat.created_at }}</td>
+                  <td class="num">{{ stat.unique_readers }}</td>
+                </tr>
+                <tr v-if="!data.announcements.read_statistics.length"><td colspan="3" class="empty">No announcement read data available.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </section>
     </template>
   </div>
 </template>
@@ -458,6 +966,11 @@ select:focus {
 
 .page-heading .secondary-button:hover:not(:disabled) {
   background: rgb(255 255 255 / 22%);
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
 }
 
 .primary-button:active:not(:disabled),
@@ -712,39 +1225,42 @@ select:focus {
 
 .mini-track {
   height: 8px;
-  border-radius: 8px;
-  background: #e8eef7;
+  border-radius: 4px;
+  background: var(--field);
   overflow: hidden;
 }
 
 .mini-track i {
   display: block;
   height: 100%;
-  border-radius: 8px;
-  background: var(--blue);
+  border-radius: 4px;
+  transition: width 0.15s;
 }
 
-.method {
-  text-transform: capitalize;
+.present {
+  background: var(--ok);
 }
 
-.method em {
-  margin-left: 6px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--field);
-  color: var(--blue);
-  font-size: 11.5px;
-  font-style: normal;
-  font-weight: 700;
+.late {
+  background: var(--warn);
+}
+
+.absent {
+  background: var(--danger);
+}
+
+/* ---------- Chart containers ---------- */
+.chart-container {
+  position: relative;
+  height: 250px;
+  margin-top: 20px;
 }
 
 /* ---------- Tables ---------- */
 .table-wrap {
-  overflow: auto;
-  margin-top: 16px;
+  overflow-x: auto;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 table {
@@ -753,60 +1269,98 @@ table {
   font-size: 14px;
 }
 
-th,
-td {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  white-space: nowrap;
+thead {
+  background: var(--field);
 }
 
 th {
-  position: sticky;
-  top: 0;
-  background: var(--field);
-  color: var(--navy);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  padding: 12px 16px;
+  text-align: left;
+  color: var(--navy-deep);
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
 }
 
-.num {
+th.num {
   text-align: right;
 }
 
-.strong {
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text);
+}
+
+td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+td.strong {
+  font-weight: 600;
   color: var(--navy-deep);
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 24px;
+}
+
+/* ---------- Collection tracking ---------- */
+.collection-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.collection-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.collection-track {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--field);
+  overflow: hidden;
+}
+
+.collection-track i {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+  border-radius: 4px;
+  transition: width 0.15s;
+}
+
+.method em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+}
+
+/* ---------- Rate indicators ---------- */
+.rate {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
   font-weight: 600;
 }
 
-tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-tbody tr:hover {
-  background: #f6f9fd;
-}
-
-.rate {
-  display: inline-block;
-  min-width: 56px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 700;
-  text-align: center;
-}
-
 .rate.good {
-  background: #e3f4ea;
-  color: #1f6b41;
+  background: #e0f4e9;
+  color: var(--ok);
 }
 
 .rate.mid {
-  background: #fbf0d3;
-  color: #8a5d00;
+  background: #fef6e6;
+  color: var(--warn);
 }
 
 .rate.low {
@@ -814,107 +1368,59 @@ tbody tr:hover {
   color: var(--danger);
 }
 
-.empty {
-  padding: 26px;
-  text-align: center;
-  color: var(--muted);
-}
-
-/* ---------- Finance ---------- */
+/* ---------- Finance section ---------- */
 .finance {
-  padding-top: 8px;
-  border-top: 1px dashed #b6c8de;
+  border-top: 3px solid var(--navy);
 }
 
 .finance-heading {
-  margin-top: 22px;
+  margin: 0 0 18px;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--field);
 }
 
-.collection-list {
-  margin-top: 14px;
+.finance-heading h2 {
+  margin: 4px 0 0;
+  font-size: 24px;
 }
 
-.collection-row {
-  display: grid;
-  grid-template-columns: 56px minmax(80px, 1fr) 120px;
-  gap: 12px;
-  align-items: center;
-  padding: 8px 0;
-  font-size: 12.5px;
-}
-
-.collection-row strong {
-  text-align: right;
-  color: var(--navy-deep);
-}
-
-.collection-track {
-  height: 10px;
-  border-radius: 8px;
-  background: #e8eef7;
-  overflow: hidden;
-}
-
-.collection-track i {
-  display: block;
-  height: 100%;
-  border-radius: 8px;
-  background: linear-gradient(90deg, var(--sky), var(--blue));
+.finance-heading .muted {
+  margin: 4px 0 0;
+  color: var(--muted);
 }
 
 /* ---------- Responsive ---------- */
-@media (max-width: 1000px) {
+@media (max-width: 900px) {
   .split {
     grid-template-columns: 1fr;
   }
-}
 
-@media (max-width: 850px) {
   .filters {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr;
   }
-}
 
-@media (max-width: 520px) {
-  .filters {
-    grid-template-columns: 1fr;
+  .filters button {
+    grid-column: span 2;
   }
 
   .page-heading {
     flex-direction: column;
     align-items: flex-start;
-    padding: 22px 20px;
-  }
-
-  .page-heading h1 {
-    font-size: 26px;
-  }
-
-  .kpi-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .kpi {
-    padding: 14px;
-  }
-
-  .kpi strong {
-    font-size: 22px;
-  }
-
-  .section-heading {
-    flex-direction: column;
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  input,
-  select,
-  .primary-button,
-  .secondary-button,
-  .trend-day,
-  .bar {
-    transition: none;
+@media (max-width: 600px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .filters button {
+    grid-column: span 1;
   }
 }
 </style>

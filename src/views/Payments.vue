@@ -137,6 +137,25 @@ async function recordPayment() {
   }
 }
 
+async function startXenditPayment(fee: PaymentRecord, flow: 'invoice' | 'payment-link') {
+  if (Number(fee.balance || 0) <= 0) return
+  busy.value = true
+  error.value = ''
+  notice.value = ''
+  try {
+    const response = await apiPost<{ checkout_url: string }>('/payments/xendit', {
+      trainee_fee_id: fee.trainee_fee_id,
+      flow
+    })
+    if (!response.data?.checkout_url) throw new Error('Xendit did not return a checkout URL.')
+    window.location.assign(response.data.checkout_url)
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : 'Unable to start Xendit payment.'
+  } finally {
+    busy.value = false
+  }
+}
+
 async function uploadProof() {
   if (!proofFile.value) {
     error.value = 'Select your proof file.'
@@ -236,8 +255,8 @@ onMounted(async () => {
       </section>
       <section class="panel">
         <h2>Fee balances</h2>
-        <div class="table-wrap"><table><thead><tr><th>Fee</th><th>Program / class</th><th>Due</th><th>Amount due</th><th>Paid</th><th>Balance</th><th>Bond status</th></tr></thead>
-          <tbody><tr v-for="fee in data.fees || []" :key="String(fee.trainee_fee_id)"><td>{{ fee.fee_name }}</td><td>{{ fee.program_name }} / {{ fee.class_name }}</td><td>{{ fee.due_date || '—' }}</td><td>{{ money(fee.amount_due) }}</td><td>{{ money(fee.amount_paid) }}</td><td>{{ money(fee.balance) }}</td><td>{{ fee.bond_status || '—' }}</td></tr><tr v-if="!data.fees?.length"><td colspan="7" class="empty">No fees assigned.</td></tr></tbody>
+        <div class="table-wrap"><table><thead><tr><th>Fee</th><th>Program / class</th><th>Due</th><th>Amount due</th><th>Paid</th><th>Balance</th><th>Bond status</th><th>Action</th></tr></thead>
+          <tbody><tr v-for="fee in data.fees || []" :key="String(fee.trainee_fee_id)"><td>{{ fee.fee_name }}</td><td>{{ fee.program_name }} / {{ fee.class_name }}</td><td>{{ fee.due_date || '—' }}</td><td>{{ money(fee.amount_due) }}</td><td>{{ money(fee.amount_paid) }}</td><td>{{ money(fee.balance) }}</td><td>{{ fee.bond_status || '—' }}</td><td><button v-if="Number(fee.balance || 0) > 0" class="text-button" :disabled="busy" @click="startXenditPayment(fee, 'invoice')">Pay online</button><button v-if="Number(fee.balance || 0) > 0" class="text-button" :disabled="busy" @click="startXenditPayment(fee, 'payment-link')">Payment link</button></td></tr><tr v-if="!data.fees?.length"><td colspan="8" class="empty">No fees assigned.</td></tr></tbody>
         </table></div>
       </section>
       <section class="content-grid section">
