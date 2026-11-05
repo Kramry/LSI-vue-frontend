@@ -51,6 +51,7 @@ const signatureDirty = ref(false)
 const signatureFile = ref<File | null>(null)
 const signatoryId = ref('')
 const signatoryForm = ref({ user_id: '', name: '', position: '', x_position: '50', y_position: '85' })
+const editingTemplateVersion = ref<number | null>(null)
 const templateForm = reactive({
   mode: 'generated', save_action: 'activate', source_template_id: '',
   min_attendance_percentage: '75', require_documents: true, require_assessments: false, required_assessment_count: '1',
@@ -356,10 +357,87 @@ async function saveTemplate() {
   if (result === null) return
   templateFile.value = null
   logoFile.value = null
+  editingTemplateVersion.value = null
 }
 
 async function activateTemplate(id: unknown) {
   await postAction(`/certificate-templates/${id}/activate`, {}, 'Certificate template activated.')
+}
+
+function editTemplate(item: Row) {
+  const activeTemplate = settingData.value.certificate_template
+  const isActiveTemplate = String(activeTemplate?.template_id) === String(item.template_id)
+  const editableFields = [
+    'institution_name', 'title_text', 'body_text', 'signatory_name', 'signatory_title',
+    'border_style', 'accent_color', 'font'
+  ] as const
+  const nestedSettings = item.settings && typeof item.settings === 'object'
+    ? item.settings as Record<string, unknown>
+    : null
+  const directSettings = editableFields.some((field) => item[field] !== undefined) ? item : null
+  const versionSettings = nestedSettings && editableFields.some((field) => nestedSettings[field] !== undefined)
+    ? nestedSettings
+    : directSettings || (isActiveTemplate ? activeTemplate?.settings : null)
+  const fields = versionSettings
+    ? editableFields.filter((field) => versionSettings[field] !== undefined)
+    : []
+
+  if (!fields.length && !isActiveTemplate) {
+    error.value = 'This template version does not include its settings, so it cannot be edited.'
+    return
+  }
+
+  fields.forEach((field) => {
+    templateForm[field] = String(versionSettings?.[field] ?? '')
+  })
+  const versionLayout = versionSettings?.field_layout ?? item.field_layout
+  if (versionLayout && typeof versionLayout === 'object') {
+    const layout = versionLayout as Record<string, { x?: number; y?: number; font_size?: number; align?: string }>
+    layoutFields.forEach((field) => {
+      const value = layout[field]
+      if (value) {
+        fieldLayout[field] = {
+          x: String(value.x ?? 50),
+          y: String(value.y ?? 50),
+          font_size: String(value.font_size ?? 16),
+          align: value.align || 'center'
+        }
+      }
+    })
+  } else if (isActiveTemplate && activeTemplate?.field_layout) {
+    layoutFields.forEach((field) => {
+      const value = activeTemplate.field_layout?.[field]
+      if (value) {
+        fieldLayout[field] = {
+          x: String(value.x),
+          y: String(value.y),
+          font_size: String(value.font_size),
+          align: value.align || 'center'
+        }
+      }
+    })
+  }
+
+  templateForm.mode = String(item.mode || activeTemplate?.mode || 'generated')
+  templateForm.source_template_id = String(item.template_id || '')
+  templateForm.save_action = 'draft'
+  const version = Number(item.version)
+  editingTemplateVersion.value = Number.isFinite(version) ? version : null
+  error.value = ''
+  notice.value = `Editing v${item.version}; saving will create a new draft version.`
+  document.querySelector('.page-heading')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+async function deleteTemplate(item: Row) {
+  if (Number(item.is_active)) return
+  if (!window.confirm(`Delete certificate template v${item.version}? This cannot be undone.`)) return
+  await postAction(`/certificate-templates/${item.template_id}/delete`, {}, 'Certificate template deleted.')
+}
+
+function cancelTemplateEdit() {
+  editingTemplateVersion.value = null
+  templateForm.source_template_id = String(settingData.value.certificate_template?.template_id || '')
+  void loadSettings()
 }
 
 onMounted(async () => {
@@ -420,6 +498,7 @@ onMounted(async () => {
       </section>
       <section class="panel">
         <h2>Certificate template</h2>
+        <p v-if="editingTemplateVersion !== null" class="muted" role="status">Editing v{{ editingTemplateVersion }} as a new draft. Saving creates a new version; existing versions are preserved. <button type="button" class="text-button" @click="cancelTemplateEdit">Cancel edit</button></p>
         <p class="muted">Template files and logos are limited to 5 MB and stored privately. Placeholders: {trainee_name}, {program_name}, {date_completed}, {cert_no}, {signatory_name}, {signatory_title}, {verification_code}.</p>
         <form class="form-grid" @submit.prevent="saveTemplate">
           <label>Template mode<select v-model="templateForm.mode"><option value="generated">Generated design</option><option value="upload">Uploaded background</option></select></label>
@@ -446,7 +525,7 @@ onMounted(async () => {
           <button class="primary-button wide" :disabled="busy">{{ busy ? 'Saving…' : 'Save template and eligibility settings' }}</button>
         </form>
         <div class="table-wrap"><table><thead><tr><th>Version</th><th>Mode</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody><tr v-for="item in settingData.certificate_template_versions || []" :key="String(item.template_id)"><td>v{{ item.version }}</td><td>{{ item.mode }}</td><td>{{ Number(item.is_active) ? 'Active' : 'Draft' }}</td><td><button v-if="!Number(item.is_active)" class="text-button" @click="activateTemplate(item.template_id)">Create active version from this</button><a v-if="item.file_path" class="text-button" :href="apiFileUrl(`/certificate-templates/${item.template_id}/file`)" target="_blank" rel="noopener">Preview file</a></td></tr><tr v-if="!settingData.certificate_template_versions?.length"><td colspan="4" class="empty">No template versions.</td></tr></tbody>
+          <tbody><tr v-for="item in settingData.certificate_template_versions || []" :key="String(item.template_id)"><td>v{{ item.version }}</td><td>{{ item.mode }}</td><td>{{ Number(item.is_active) ? 'Active' : 'Draft' }}</td><td class="row-actions"><button class="text-button" :disabled="busy" @click="editTemplate(item)">Edit</button><button v-if="!Number(item.is_active)" class="text-button" :disabled="busy" @click="activateTemplate(item.template_id)">Create active version from this</button><button v-if="!Number(item.is_active)" class="text-button danger" :disabled="busy" @click="deleteTemplate(item)">Delete</button><a v-if="item.file_path" class="text-button" :href="apiFileUrl(`/certificate-templates/${item.template_id}/file`)" target="_blank" rel="noopener">Preview file</a></td></tr><tr v-if="!settingData.certificate_template_versions?.length"><td colspan="4" class="empty">No template versions.</td></tr></tbody>
         </table></div>
       </section>
 
