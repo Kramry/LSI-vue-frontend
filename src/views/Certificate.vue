@@ -352,7 +352,8 @@ async function saveTemplate() {
   })
   if (templateFile.value) form.append('template_file', templateFile.value)
   if (logoFile.value) form.append('logo', logoFile.value)
-  await postAction('/certificate-config', form, 'Certificate settings saved.')
+  const result = await postAction('/certificate-config', form, 'Certificate settings saved.')
+  if (result === null) return
   templateFile.value = null
   logoFile.value = null
 }
