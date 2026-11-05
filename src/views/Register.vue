@@ -6,6 +6,7 @@ import { apiGet, register } from '../services/api'
 const router = useRouter()
 const firstName = ref('')
 const lastName = ref('')
+const role = ref('trainee')
 const username = ref('')
 const email = ref('')
 const sex = ref('')
@@ -28,6 +29,7 @@ async function submit() {
       full_name: `${firstName.value} ${lastName.value}`.trim(),
       first_name: firstName.value,
       last_name: lastName.value,
+      role: role.value,
       username: username.value,
       email: email.value,
       sex: sex.value,
@@ -86,6 +88,8 @@ onMounted(async () => {
           <label for="first-name">First name<input id="first-name" v-model.trim="firstName" autocomplete="given-name" required></label>
           <label for="last-name">Last name<input id="last-name" v-model.trim="lastName" autocomplete="family-name" required></label>
         </div>
+
+        <label for="role">Role<select id="role" v-model="role" required><option value="trainee">Trainee</option><option value="instructor">Instructor</option><option value="staff">Staff</option></select></label>
 
         <label for="username">Username</label>
         <input id="username" v-model.trim="username" autocomplete="username" required>

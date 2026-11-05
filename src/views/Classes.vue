@@ -32,6 +32,8 @@ const role = ref('')
 const formOpen = ref(false)
 const saving = ref(false)
 const formError = ref('')
+const editingId = ref<number | null>(null)
+const deletingId = ref<number | null>(null)
 const form = reactive({
   class_name: '',
   program_id: '',
@@ -57,10 +59,23 @@ function resetForm() {
   form.start_date = ''
   form.end_date = ''
   form.status = 'active'
+  editingId.value = null
 }
 
 function openCreateForm() {
   resetForm()
+  formError.value = ''
+  formOpen.value = true
+}
+
+function openEditForm(item: ClassCard) {
+  form.class_name = item.class_name
+  form.program_id = String(item.program_id)
+  form.instructor_id = String((item as ClassCard & { instructor_id?: number }).instructor_id || '')
+  form.start_date = item.start_date || ''
+  form.end_date = item.end_date || ''
+  form.status = 'active'
+  editingId.value = item.class_id
   formError.value = ''
   formOpen.value = true
 }
@@ -74,22 +89,41 @@ async function saveClass() {
   saving.value = true
   formError.value = ''
   try {
-    await apiPost('/modules/classes/save', {
+    const payload: any = {
       class_name: form.class_name,
       program_id: form.program_id,
       instructor_id: form.instructor_id || null,
       start_date: form.start_date || null,
       end_date: form.end_date || null,
       status: form.status
-    })
+    }
+    if (editingId.value) {
+      payload.class_id = editingId.value
+    }
+    await apiPost('/classes/save', payload)
     closeCreateForm()
     await load()
   } catch (reason) {
     formError.value = reason instanceof ApiError
       ? reason.message
-      : reason instanceof Error ? reason.message : 'Unable to create this class.'
+      : reason instanceof Error ? reason.message : 'Unable to save this class.'
   } finally {
     saving.value = false
+  }
+}
+
+async function deleteClass(id: number) {
+  if (!confirm('Are you sure you want to delete this class?')) return
+  deletingId.value = id
+  try {
+    await apiPost(`/classes/delete/${id}`, {})
+    await load()
+  } catch (reason) {
+    error.value = reason instanceof ApiError
+      ? reason.message
+      : reason instanceof Error ? reason.message : 'Unable to delete this class.'
+  } finally {
+    deletingId.value = null
   }
 }
 
@@ -139,8 +173,8 @@ onMounted(async () => {
     <section v-if="formOpen && isStaff" class="panel form-panel">
       <div class="form-heading">
         <div>
-          <h2>Add Class</h2>
-          <p class="muted">Create a class for a training program.</p>
+          <h2>{{ editingId ? 'Edit Class' : 'Add Class' }}</h2>
+          <p class="muted">{{ editingId ? 'Update class details.' : 'Create a class for a training program.' }}</p>
         </div>
         <button class="secondary-button" type="button" @click="closeCreateForm">Cancel</button>
       </div>
@@ -181,7 +215,7 @@ onMounted(async () => {
         </label>
         <div class="form-actions">
           <button class="primary-button" type="submit" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Create class' }}
+            {{ saving ? 'Saving...' : (editingId ? 'Update class' : 'Create class') }}
           </button>
         </div>
       </form>
@@ -274,6 +308,12 @@ onMounted(async () => {
           <RouterLink class="primary-button" :to="`/classes/${item.class_id}`">Open class</RouterLink>
           <RouterLink class="secondary-button" :to="{ path: '/attendance', query: { class_id: item.class_id } }">Take attendance</RouterLink>
           <RouterLink class="secondary-button" :to="{ path: '/assessments', query: { class_id: item.class_id } }">Record assessment</RouterLink>
+          <template v-if="isStaff">
+            <button class="secondary-button" type="button" @click="openEditForm(item)">Edit</button>
+            <button class="danger-button" type="button" :disabled="deletingId === item.class_id" @click="deleteClass(item.class_id)">
+              {{ deletingId === item.class_id ? 'Deleting...' : 'Delete' }}
+            </button>
+          </template>
         </div>
       </article>
     </section>
@@ -692,7 +732,7 @@ onMounted(async () => {
 /* ---------- Buttons ---------- */
 .actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   padding-top: 16px;
   border-top: 1px dashed var(--line);
@@ -703,7 +743,8 @@ onMounted(async () => {
 }
 
 .primary-button,
-.secondary-button {
+.secondary-button,
+.danger-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -738,18 +779,30 @@ onMounted(async () => {
   background: #d3e0f0;
 }
 
+.danger-button {
+  background: #fdebeb;
+  color: var(--danger);
+}
+
+.danger-button:hover:not(:disabled) {
+  background: #f9d3d3;
+}
+
 .primary-button:active,
-.secondary-button:active:not(:disabled) {
+.secondary-button:active:not(:disabled),
+.danger-button:active:not(:disabled) {
   transform: translateY(1px);
 }
 
-.secondary-button:disabled {
+.secondary-button:disabled,
+.danger-button:disabled {
   opacity: 0.6;
   cursor: wait;
 }
 
 .primary-button:focus-visible,
-.secondary-button:focus-visible {
+.secondary-button:focus-visible,
+.danger-button:focus-visible {
   outline: 3px solid var(--sky);
   outline-offset: 2px;
 }

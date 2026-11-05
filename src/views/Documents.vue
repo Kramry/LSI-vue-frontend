@@ -20,6 +20,7 @@ interface DocumentsData {
   records: DocumentRecord[]
   can_upload: boolean
   can_manage_documents: boolean
+  can_review_documents: boolean
   can_manage_requirements: boolean
   document_requirements: Requirement[]
   trainee_classes: TraineeClass[]
@@ -214,7 +215,7 @@ onMounted(async () => {
         <p class="muted">Submit trainee requirements and review uploaded documents.</p>
       </div>
       <div class="heading-actions">
-        <div v-if="data?.can_manage_documents" class="summary" :class="{ clear: !pendingCount }">
+        <div v-if="data?.can_review_documents" class="summary" :class="{ clear: !pendingCount }">
           <strong>{{ pendingCount }}</strong>
           <span>awaiting review</span>
         </div>
@@ -350,7 +351,7 @@ onMounted(async () => {
                 <td><span class="access">{{ item.access_level }}</span></td>
                 <td class="actions">
                   <a class="text-button" :href="apiFileUrl(`/documents/${item.document_id}`)" target="_blank" rel="noopener">Download</a>
-                  <template v-if="data?.can_manage_documents && item.trainee_id && item.review_status === 'pending'">
+                  <template v-if="data?.can_review_documents && item.trainee_id && item.review_status === 'pending'">
                     <button class="text-button approve" :disabled="busyId === item.document_id" @click="review(item, 'approved')">Approve</button>
                     <button class="text-button reject" :disabled="busyId === item.document_id" @click="review(item, 'rejected')">Reject</button>
                   </template>

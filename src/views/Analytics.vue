@@ -226,69 +226,95 @@ function barWidth(value: number, max: number) {
   return `${max > 0 ? Math.max(value > 0 ? 2 : 0, (value / max) * 100) : 0}%`
 }
 
+function csvCell(value: unknown) {
+  return `"${String(value ?? '').replace(/"/g, '""')}"`
+}
+
 function exportToExcel() {
   if (!data.value) {
     alert('Please wait for analytics data to load before exporting.')
     return
   }
-  let csv = 'Analytics Report\n'
-  csv += `Generated: ${new Date().toISOString()}\n`
-  csv += `Date Range: ${startDate.value} to ${endDate.value}\n\n`
+  const rows: unknown[][] = [
+    ['Analytics Report'],
+    ['Generated:', new Date().toISOString()],
+    ['Date Range:', `${startDate.value} to ${endDate.value}`],
+    []
+  ]
 
-  csv += 'SUMMARY\n'
-  csv += 'Metric,Value\n'
-  csv += `Active Trainees,${data.value.summary.active_trainees}\n`
-  csv += `Active Classes,${data.value.summary.active_classes}\n`
-  csv += `Attendance Records,${data.value.summary.attendance_records}\n`
-  csv += `Attendance Rate,${data.value.summary.attendance_rate}%\n`
-  csv += `Absent Records,${data.value.summary.absent_records}\n\n`
+  rows.push(
+    ['SUMMARY'],
+    ['Metric', 'Value'],
+    ['Active Trainees', data.value.summary.active_trainees],
+    ['Active Classes', data.value.summary.active_classes],
+    ['Attendance Records', data.value.summary.attendance_records],
+    ['Attendance Rate', `${data.value.summary.attendance_rate}%`],
+    ['Absent Records', data.value.summary.absent_records],
+    []
+  )
 
   if (data.value.training) {
-    csv += 'TRAINING ANALYTICS\n'
-    csv += 'Metric,Value\n'
-    csv += `Total Enrolled,${data.value.training.summary.total_enrolled}\n`
-    csv += `Active Trainees,${data.value.training.summary.active_trainees}\n`
-    csv += `Completed Trainings,${data.value.training.summary.completed_trainings}\n`
-    csv += `Completion Rate,${data.value.training.summary.completion_rate}%\n\n`
+    rows.push(
+      ['TRAINING ANALYTICS'],
+      ['Metric', 'Value'],
+      ['Total Enrolled', data.value.training.summary.total_enrolled],
+      ['Active Trainees', data.value.training.summary.active_trainees],
+      ['Completed Trainings', data.value.training.summary.completed_trainings],
+      ['Completion Rate', `${data.value.training.summary.completion_rate}%`],
+      []
+    )
   }
 
   if (data.value.documents) {
-    csv += 'DOCUMENT ANALYTICS\n'
-    csv += 'Metric,Value\n'
-    csv += `Total Submitted,${data.value.documents.summary.total_submitted}\n`
-    csv += `Verified,${data.value.documents.summary.verified}\n`
-    csv += `Rejected,${data.value.documents.summary.rejected}\n`
-    csv += `Pending,${data.value.documents.summary.pending}\n`
-    csv += `Missing,${data.value.documents.summary.missing}\n\n`
+    rows.push(
+      ['DOCUMENT ANALYTICS'],
+      ['Metric', 'Value'],
+      ['Total Submitted', data.value.documents.summary.total_submitted],
+      ['Verified', data.value.documents.summary.verified],
+      ['Rejected', data.value.documents.summary.rejected],
+      ['Pending', data.value.documents.summary.pending],
+      ['Missing', data.value.documents.summary.missing],
+      []
+    )
   }
 
   if (data.value.certificates) {
-    csv += 'CERTIFICATE ANALYTICS\n'
-    csv += 'Metric,Value\n'
-    csv += `Total Issued,${data.value.certificates.summary.total_issued}\n`
-    csv += `Issued,${data.value.certificates.summary.issued}\n`
-    csv += `Pending,${data.value.certificates.summary.pending}\n`
-    csv += `Revoked,${data.value.certificates.summary.revoked}\n\n`
+    rows.push(
+      ['CERTIFICATE ANALYTICS'],
+      ['Metric', 'Value'],
+      ['Total Issued', data.value.certificates.summary.total_issued],
+      ['Issued', data.value.certificates.summary.issued],
+      ['Pending', data.value.certificates.summary.pending],
+      ['Revoked', data.value.certificates.summary.revoked],
+      []
+    )
   }
 
   if (data.value.announcements) {
-    csv += 'ANNOUNCEMENT ANALYTICS\n'
-    csv += 'Metric,Value\n'
-    csv += `Total Published,${data.value.announcements.summary.total_published}\n`
-    csv += `Email Notifications,${data.value.announcements.summary.email_notifications}\n`
-    csv += `SMS Notifications,${data.value.announcements.summary.sms_notifications}\n`
-    csv += `Read Notifications,${data.value.announcements.summary.read_notifications}\n`
-    csv += `Failed Notifications,${data.value.announcements.summary.failed_notifications}\n\n`
+    rows.push(
+      ['ANNOUNCEMENT ANALYTICS'],
+      ['Metric', 'Value'],
+      ['Total Published', data.value.announcements.summary.total_published],
+      ['Email Notifications', data.value.announcements.summary.email_notifications],
+      ['SMS Notifications', data.value.announcements.summary.sms_notifications],
+      ['Read Notifications', data.value.announcements.summary.read_notifications],
+      ['Failed Notifications', data.value.announcements.summary.failed_notifications],
+      []
+    )
   }
 
   if (data.value.payments) {
-    csv += 'PAYMENT ANALYTICS\n'
-    csv += 'Metric,Value\n'
-    csv += `Net Collected,${data.value.payments.summary.net_collected}\n`
-    csv += `Outstanding Balance,${data.value.payments.summary.outstanding_balance}\n`
-    csv += `Bond Held,${data.value.payments.summary.bond_held}\n\n`
+    rows.push(
+      ['PAYMENT ANALYTICS'],
+      ['Metric', 'Value'],
+      ['Net Collected', data.value.payments.summary.net_collected],
+      ['Outstanding Balance', data.value.payments.summary.outstanding_balance],
+      ['Bond Held', data.value.payments.summary.bond_held],
+      []
+    )
   }
 
+  const csv = rows.map(row => row.map(csvCell).join(',')).join('\r\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
