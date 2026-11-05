@@ -153,6 +153,7 @@ const data = ref<AnalyticsData | null>(null)
 const loading = ref(false)
 const error = ref('')
 const isFinance = computed(() => ['administrator', 'staff'].includes(role.value))
+const selectedClassName = computed(() => data.value?.class_options.find(item => String(item.class_id) === classId.value)?.class_name || 'All available classes')
 const maxTrendValue = computed(() => Math.max(1, ...(data.value?.trend.map((item) => item.present + item.late + item.absent) ?? [1])))
 
 // Chart data configurations
@@ -326,6 +327,11 @@ function exportToExcel() {
   document.body.removeChild(link)
 }
 
+function printReport() {
+  if (!data.value) return
+  window.print()
+}
+
 async function load() {
   loading.value = true
   error.value = ''
@@ -363,6 +369,7 @@ onMounted(async () => {
       <div class="button-group">
         <button class="secondary-button" :disabled="loading" @click="load">Refresh</button>
         <button class="secondary-button" :disabled="loading || !data" @click="exportToExcel">Export Excel</button>
+        <button class="secondary-button" :disabled="loading || !data" @click="printReport">Print PDF</button>
       </div>
     </header>
 
@@ -379,6 +386,11 @@ onMounted(async () => {
       </label>
       <button class="primary-button" type="submit" :disabled="loading">{{ loading ? 'Loading…' : 'Apply filters' }}</button>
     </form>
+
+    <div class="print-meta">
+      <p><strong>Report period:</strong> {{ startDate }} to {{ endDate }}</p>
+      <p><strong>Class:</strong> {{ selectedClassName }}</p>
+    </div>
 
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
     <p v-if="loading && !data" class="muted loading">Loading analytics…</p>
@@ -1018,6 +1030,10 @@ select:focus {
   color: var(--danger);
 }
 
+.print-meta {
+  display: none;
+}
+
 /* ---------- KPI cards ---------- */
 .kpi-grid {
   display: grid;
@@ -1447,6 +1463,54 @@ td.strong {
 
   .filters button {
     grid-column: span 1;
+  }
+}
+
+@media print {
+  :global(.app-shell) {
+    display: block;
+    background: #fff;
+  }
+
+  :global(.sidebar),
+  .button-group,
+  .filters,
+  .inline-error,
+  .loading {
+    display: none !important;
+  }
+
+  .print-meta {
+    display: block;
+    margin-bottom: 12px;
+  }
+
+  .print-meta p {
+    margin: 4px 0;
+  }
+
+  :global(.main-content) {
+    padding: 0 !important;
+  }
+
+  .page {
+    max-width: none;
+    color: #111;
+    font-size: 10pt;
+  }
+
+  .page-heading {
+    padding: 0 0 12px;
+  }
+
+  .panel {
+    break-inside: avoid;
+    box-shadow: none;
+    background: #fff;
+  }
+
+  .table-wrap {
+    overflow: visible;
   }
 }
 </style>

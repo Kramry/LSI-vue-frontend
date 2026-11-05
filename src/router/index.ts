@@ -82,6 +82,12 @@ const router = createRouter({
           meta: { roles: ['administrator', 'staff', 'instructor'] }
         },
         {
+          path: 'activity',
+          component: () => import('../views/ManagementModule.vue'),
+          props: { section: 'activity' },
+          meta: { roles: ['administrator', 'staff'] }
+        },
+        {
           path: 'documents',
           component: () => import('../views/Documents.vue'),
           meta: { roles: ['administrator', 'staff', 'instructor', 'trainee'] }
