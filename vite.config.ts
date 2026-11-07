@@ -10,6 +10,7 @@ export default defineConfig(({ mode }) => {
     plugins: [vue()],
     server: {
       host: '0.0.0.0',
+      allowedHosts: ['lsi-vue-frontend.onrender.com'],
       port: 5176,
       strictPort: true,
       proxy: {
