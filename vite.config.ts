@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/api': {
-          target: env.API_PROXY_TARGET || 'http://localhost/LavaLust-dev-v4-LSI/LavaLust-dev-v4/public',
+          target: env.API_PROXY_TARGET || 'https://lsi-smart-track.onrender.com',
           changeOrigin: true
         }
       }
