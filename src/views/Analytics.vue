@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { apiGet, getSession } from '../services/api'
-import { API_BASE_URL } from '../config'
 import { Line, Doughnut, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -409,16 +408,8 @@ async function loadWebsiteAnalytics() {
   websiteError.value = ''
   try {
     const query = new URLSearchParams({ start_date: startDate.value, end_date: endDate.value })
-    const response = await fetch(`${API_BASE_URL}/analytics/posthog?${query}`, {
-      headers: { Accept: 'application/json' },
-      credentials: 'include'
-    })
-    const payload = await response.json() as {
-      data?: { website_analytics?: WebsiteAnalyticsReport }
-      message?: string
-    }
-    if (!response.ok) throw new Error(payload.message || `Request failed (${response.status}).`)
-    const report = payload.data?.website_analytics
+    const payload = await apiGet<{ website_analytics?: WebsiteAnalyticsReport }>(`/analytics/posthog?${query}`)
+    const report = payload.data.website_analytics
     if (!report || !report.current || !report.previous || !Array.isArray(report.daily)) {
       throw new Error('The website analytics response was incomplete.')
     }
