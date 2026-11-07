@@ -220,6 +220,8 @@ onMounted(async () => {
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   max-width: 1450px;
   margin: auto;
@@ -228,7 +230,7 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Banner ---------- */
+/* ================= Banner ================= */
 .page-header {
   position: relative;
   display: flex;
@@ -239,8 +241,9 @@ onMounted(async () => {
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
+  animation: drop-in 0.6s var(--ease) both;
 }
 
 .page-header::before {
@@ -251,8 +254,23 @@ onMounted(async () => {
   pointer-events: none;
 }
 
+/* a light sweep that crosses the banner every few seconds */
+.page-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 30%;
+  background: linear-gradient(100deg, transparent, rgb(143 196 245 / 20%), transparent);
+  transform: skewX(-20deg);
+  animation: sweep 7s ease-in-out 1.2s infinite;
+  pointer-events: none;
+}
+
 .page-header > * {
   position: relative;
+  z-index: 1;
 }
 
 .page-header h1 {
@@ -265,11 +283,24 @@ onMounted(async () => {
 }
 
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 8px;
   color: var(--sky);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
+}
+
+/* "live" dot beside the label */
+.eyebrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5fd08c;
+  animation: ping 2s ease-out infinite;
 }
 
 .lead {
@@ -296,25 +327,48 @@ onMounted(async () => {
 }
 
 .secondary-button {
+  position: relative;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.2s var(--spring);
 }
 
 .secondary-button:hover:not(:disabled) {
   background: rgb(255 255 255 / 20%);
+  transform: translateY(-2px);
 }
 
 .secondary-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.96);
 }
 
+.secondary-button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+
+/* refresh in progress: a small spinner replaces the hover state */
 .secondary-button:disabled {
-  opacity: 0.6;
+  padding-right: 38px;
+  opacity: 0.8;
   cursor: wait;
 }
 
-/* ---------- Stat cards ---------- */
+.secondary-button:disabled::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border: 2px solid rgb(255 255 255 / 35%);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ================= Stat cards ================= */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -322,6 +376,7 @@ onMounted(async () => {
 }
 
 .stat-card {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -330,7 +385,15 @@ onMounted(async () => {
   border-top: 3px solid var(--blue);
   border-radius: 12px;
   background: #fff;
+  overflow: hidden;
+  animation: pop-in 0.6s var(--spring) both;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s ease, border-color 0.3s ease;
 }
+
+.stat-card:nth-child(1) { animation-delay: 0.05s; }
+.stat-card:nth-child(2) { animation-delay: 0.12s; }
+.stat-card:nth-child(3) { animation-delay: 0.19s; }
+.stat-card:nth-child(4) { animation-delay: 0.26s; }
 
 .stat-card:nth-child(4n + 2) {
   border-top-color: var(--sky);
@@ -344,7 +407,32 @@ onMounted(async () => {
   border-top-color: var(--warn);
 }
 
+/* glow that follows the card on hover */
+.stat-card::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  right: -30%;
+  width: 70%;
+  height: 160%;
+  background: radial-gradient(circle, rgb(143 196 245 / 28%), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 34px -22px rgb(17 44 73 / 60%);
+}
+
+.stat-card:hover::after {
+  opacity: 1;
+}
+
 .stat-icon {
+  position: relative;
+  z-index: 1;
   flex: none;
   width: 48px;
   height: 48px;
@@ -352,6 +440,18 @@ onMounted(async () => {
   place-items: center;
   border-radius: 12px;
   font-size: 22px;
+  transition: transform 0.4s var(--spring);
+}
+
+.stat-card:hover .stat-icon {
+  transform: rotate(-8deg) scale(1.14);
+}
+
+.stat-card > div:not(.stat-icon),
+.stat-card p,
+.stat-card h2 {
+  position: relative;
+  z-index: 1;
 }
 
 .stat-card p {
@@ -368,9 +468,10 @@ onMounted(async () => {
   font-size: 30px;
   font-weight: 600;
   line-height: 1.1;
+  animation: number-in 0.7s var(--ease) 0.3s both;
 }
 
-/* ---------- Two-column layout ---------- */
+/* ================= Layout and panels ================= */
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -392,7 +493,28 @@ onMounted(async () => {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+  transition: box-shadow 0.3s ease, transform 0.3s var(--ease);
 }
+
+.panel:hover {
+  box-shadow: 0 16px 34px -20px rgb(17 44 73 / 50%);
+}
+
+/* panels slide in from their own side */
+.main-col > * {
+  animation: slide-left 0.7s var(--ease) both;
+}
+
+.main-col > :nth-child(1) { animation-delay: 0.3s; }
+.main-col > :nth-child(2) { animation-delay: 0.42s; }
+.main-col > :nth-child(3) { animation-delay: 0.54s; }
+
+.side-col > * {
+  animation: slide-right 0.7s var(--ease) both;
+}
+
+.side-col > :nth-child(1) { animation-delay: 0.38s; }
+.side-col > :nth-child(2) { animation-delay: 0.5s; }
 
 .panel h2 {
   margin: 0;
@@ -411,9 +533,10 @@ onMounted(async () => {
 .loading {
   padding: 24px 0;
   text-align: center;
+  animation: breathe 1.4s ease-in-out infinite;
 }
 
-/* ---------- Weekly chart ---------- */
+/* ================= Weekly chart: bars grow upward ================= */
 .weekly-chart {
   display: flex;
   gap: 10px;
@@ -434,7 +557,7 @@ onMounted(async () => {
   text-align: center;
   color: var(--muted);
   font-size: 12px;
-  transition: background 0.15s;
+  transition: background 0.2s ease;
 }
 
 .day-column:hover {
@@ -444,6 +567,7 @@ onMounted(async () => {
 .day-column span {
   color: var(--navy-deep);
   font-weight: 700;
+  animation: fade-in 0.5s ease 0.9s both;
 }
 
 .bar-area {
@@ -458,6 +582,22 @@ onMounted(async () => {
   min-height: 2px;
   border-radius: 6px 6px 0 0;
   background: linear-gradient(180deg, #b9d9f7, #7aa7d0);
+  transform-origin: bottom;
+  animation: grow 0.9s var(--spring) both;
+  transition: filter 0.2s ease, transform 0.25s var(--spring);
+}
+
+.day-column:nth-child(1) .bar-area i { animation-delay: 0.55s; }
+.day-column:nth-child(2) .bar-area i { animation-delay: 0.63s; }
+.day-column:nth-child(3) .bar-area i { animation-delay: 0.71s; }
+.day-column:nth-child(4) .bar-area i { animation-delay: 0.79s; }
+.day-column:nth-child(5) .bar-area i { animation-delay: 0.87s; }
+.day-column:nth-child(6) .bar-area i { animation-delay: 0.95s; }
+.day-column:nth-child(7) .bar-area i { animation-delay: 1.03s; }
+
+.day-column:hover .bar-area i {
+  filter: brightness(1.08);
+  transform: scaleX(1.12);
 }
 
 .day-column.peak .bar-area i {
@@ -468,20 +608,37 @@ onMounted(async () => {
   color: var(--blue);
 }
 
-/* ---------- Activity ---------- */
+/* ================= Recent attendance: rows slide in ================= */
 .activity {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 0;
+  margin: 0 -10px;
+  padding: 14px 10px;
   border-bottom: 1px solid var(--line);
+  border-radius: 10px;
+  animation: slide-left 0.55s var(--ease) both;
+  transition: background 0.2s ease, transform 0.25s var(--ease);
 }
+
+.activity:nth-of-type(1) { animation-delay: 0.7s; }
+.activity:nth-of-type(2) { animation-delay: 0.78s; }
+.activity:nth-of-type(3) { animation-delay: 0.86s; }
+.activity:nth-of-type(4) { animation-delay: 0.94s; }
+.activity:nth-of-type(5) { animation-delay: 1.02s; }
+.activity:nth-of-type(n + 6) { animation-delay: 1.1s; }
 
 .activity:last-of-type {
   border-bottom: 0;
 }
 
+.activity:hover {
+  background: #f6f9fd;
+  transform: translateX(4px);
+}
+
 .activity-dot {
+  position: relative;
   flex: none;
   width: 10px;
   height: 10px;
@@ -499,6 +656,20 @@ onMounted(async () => {
 
 .activity-dot.absent {
   background: var(--danger);
+}
+
+/* a soft ring ripples out from the dot on hover */
+.activity-dot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  opacity: 0;
+}
+
+.activity:hover .activity-dot::after {
+  animation: ripple 0.9s ease-out infinite;
 }
 
 .activity-info {
@@ -524,6 +695,11 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 700;
   text-transform: capitalize;
+  transition: transform 0.25s var(--spring);
+}
+
+.activity:hover .status-pill {
+  transform: scale(1.08);
 }
 
 .status-pill.present {
@@ -550,8 +726,9 @@ onMounted(async () => {
   font-size: 12px;
 }
 
-/* ---------- Side rail ---------- */
+/* ================= Side rail ================= */
 .quick-actions a {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -563,25 +740,45 @@ onMounted(async () => {
   color: var(--navy-deep);
   font-weight: 600;
   text-decoration: none;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 0.3s ease, border-color 0.3s ease, transform 0.3s var(--ease);
 }
 
 .quick-actions a:first-of-type {
   margin-top: 14px;
 }
 
+/* the row fills with blue from the left on hover */
+.quick-actions a::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, var(--blue), #2c6ba5);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s var(--ease);
+}
+
 .quick-actions a b {
   color: var(--blue);
-  transition: transform 0.15s;
+  transition: transform 0.3s var(--spring), color 0.3s ease;
 }
 
 .quick-actions a:hover {
-  border-color: var(--sky);
-  background: #eef5fd;
+  border-color: var(--blue);
+  color: #fff;
+  transform: translateX(3px);
+}
+
+.quick-actions a:hover::before {
+  transform: scaleX(1);
 }
 
 .quick-actions a:hover b {
-  transform: translateX(3px);
+  color: #fff;
+  transform: translateX(5px);
 }
 
 .quick-actions a:focus-visible {
@@ -595,6 +792,19 @@ onMounted(async () => {
   border-left: 3px solid var(--sky);
   border-radius: 0 8px 8px 0;
   background: #f6f9fd;
+  animation: slide-right 0.55s var(--ease) both;
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s var(--ease);
+}
+
+.announcement:nth-of-type(1) { animation-delay: 0.75s; }
+.announcement:nth-of-type(2) { animation-delay: 0.85s; }
+.announcement:nth-of-type(3) { animation-delay: 0.95s; }
+.announcement:nth-of-type(n + 4) { animation-delay: 1.05s; }
+
+.announcement:hover {
+  border-left-color: var(--blue);
+  background: #eef5fd;
+  transform: translateX(-3px);
 }
 
 .announcement strong {
@@ -613,7 +823,7 @@ onMounted(async () => {
   color: var(--muted);
 }
 
-/* ---------- Table ---------- */
+/* ================= Table ================= */
 .table-wrap {
   overflow: auto;
   margin-top: 16px;
@@ -654,13 +864,26 @@ th {
 }
 
 .code-chip {
+  display: inline-block;
   padding: 3px 9px;
   border-radius: 6px;
   background: var(--field);
   color: var(--navy);
   font-size: 12px;
   font-weight: 700;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.25s var(--spring);
 }
+
+tbody tr {
+  animation: fade-up-small 0.5s var(--ease) both;
+  transition: background 0.2s ease;
+}
+
+tbody tr:nth-child(1) { animation-delay: 0.9s; }
+tbody tr:nth-child(2) { animation-delay: 0.97s; }
+tbody tr:nth-child(3) { animation-delay: 1.04s; }
+tbody tr:nth-child(4) { animation-delay: 1.11s; }
+tbody tr:nth-child(n + 5) { animation-delay: 1.18s; }
 
 tbody tr:last-child td {
   border-bottom: 0;
@@ -670,7 +893,13 @@ tbody tr:hover {
   background: #f6f9fd;
 }
 
-/* ---------- States ---------- */
+tbody tr:hover .code-chip {
+  background: var(--blue);
+  color: #fff;
+  transform: scale(1.06);
+}
+
+/* ================= States ================= */
 .inline-error {
   margin: 0 0 16px;
   padding: 12px 14px;
@@ -678,6 +907,7 @@ tbody tr:hover {
   border-radius: 6px;
   background: #fdeceb;
   color: var(--danger);
+  animation: shake 0.45s ease both;
 }
 
 .empty {
@@ -686,7 +916,159 @@ tbody tr:hover {
   color: var(--muted);
 }
 
-/* ---------- Responsive ---------- */
+/* ================= Keyframes ================= */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: translateY(22px) scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-up-small {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes number-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sweep {
+  0%,
+  55% {
+    left: -40%;
+  }
+  100% {
+    left: 130%;
+  }
+}
+
+@keyframes ping {
+  0% {
+    box-shadow: 0 0 0 0 rgb(95 208 140 / 65%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgb(95 208 140 / 0%);
+  }
+}
+
+@keyframes ripple {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.8);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+/* ================= Responsive ================= */
 @media (max-width: 1100px) {
   .layout {
     grid-template-columns: 1fr;
@@ -694,6 +1076,10 @@ tbody tr:hover {
 
   .side-col {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .side-col > * {
+    animation-name: slide-left;
   }
 }
 
@@ -742,11 +1128,42 @@ tbody tr:hover {
   }
 }
 
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .page-header,
+  .page-header::after,
+  .eyebrow::before,
+  .stat-card,
+  .stat-card h2,
+  .main-col > *,
+  .side-col > *,
+  .loading,
+  .day-column span,
+  .bar-area i,
+  .activity,
+  .announcement,
+  tbody tr,
+  .inline-error,
+  .secondary-button:disabled::after,
+  .activity:hover .activity-dot::after {
+    animation: none;
+  }
+
   .secondary-button,
+  .stat-card,
+  .stat-card::after,
+  .stat-icon,
+  .panel,
   .day-column,
+  .bar-area i,
+  .activity,
+  .status-pill,
   .quick-actions a,
-  .quick-actions a b {
+  .quick-actions a::before,
+  .quick-actions a b,
+  .announcement,
+  .code-chip,
+  tbody tr {
     transition: none;
   }
 }

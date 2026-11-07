@@ -453,6 +453,8 @@ onMounted(async () => {
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   max-width: 1450px;
   margin: auto;
@@ -460,7 +462,7 @@ onMounted(async () => {
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
 }
 
-/* ---------- Banner ---------- */
+/* ================= Banner ================= */
 .page-heading,
 .section-heading {
   display: flex;
@@ -475,8 +477,9 @@ onMounted(async () => {
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
+  animation: drop-in 0.6s var(--ease) both;
 }
 
 .page-heading::before {
@@ -487,8 +490,29 @@ onMounted(async () => {
   pointer-events: none;
 }
 
+/* faint document sheets floating behind the heading */
+.page-heading::after {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: 8%;
+  width: 120px;
+  height: 150px;
+  border: 1px solid rgb(143 196 245 / 35%);
+  border-radius: 10px;
+  background:
+    linear-gradient(rgb(143 196 245 / 35%), rgb(143 196 245 / 35%)) 16px 34px / 56px 3px no-repeat,
+    linear-gradient(rgb(143 196 245 / 25%), rgb(143 196 245 / 25%)) 16px 52px / 82px 3px no-repeat,
+    linear-gradient(rgb(143 196 245 / 25%), rgb(143 196 245 / 25%)) 16px 70px / 70px 3px no-repeat,
+    rgb(255 255 255 / 5%);
+  transform: rotate(12deg);
+  animation: sheet-float 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .page-heading > * {
   position: relative;
+  z-index: 1;
 }
 
 .page-heading h1 {
@@ -519,6 +543,7 @@ onMounted(async () => {
   gap: 12px;
 }
 
+/* pending-review chip: gently pulses while documents are waiting */
 .summary {
   display: flex;
   align-items: baseline;
@@ -529,6 +554,7 @@ onMounted(async () => {
   background: rgb(242 190 60 / 16%);
   color: #ffe3a1;
   font-size: 13px;
+  animation: pop-in 0.6s var(--spring) 0.2s both, attention 2.6s ease-in-out 1.4s infinite;
 }
 
 .summary strong {
@@ -542,6 +568,7 @@ onMounted(async () => {
   border-color: rgb(255 255 255 / 25%);
   background: rgb(255 255 255 / 10%);
   color: rgb(255 255 255 / 80%);
+  animation: pop-in 0.6s var(--spring) 0.2s both;
 }
 
 .muted {
@@ -549,7 +576,7 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-/* ---------- Layout ---------- */
+/* ================= Layout and panels ================= */
 .layout {
   display: grid;
   grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
@@ -568,12 +595,26 @@ onMounted(async () => {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+  transition: box-shadow 0.3s ease;
+}
+
+.panel:hover {
+  box-shadow: 0 16px 34px -20px rgb(17 44 73 / 50%);
 }
 
 .upload-panel {
   position: sticky;
   top: 16px;
   border-top: 3px solid var(--blue);
+  animation: slide-left 0.7s var(--ease) 0.15s both;
+}
+
+.list-panel {
+  animation: slide-right 0.7s var(--ease) 0.25s both;
+}
+
+.layout.single .list-panel {
+  animation-name: rise;
 }
 
 .panel h2 {
@@ -588,13 +629,14 @@ onMounted(async () => {
   margin: 6px 0 0;
 }
 
+/* storage badge */
 .storage-badge {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   width: fit-content;
   margin: 12px 0 0;
-  padding: 6px 9px;
+  padding: 6px 10px;
   border: 1px solid #dfe7f1;
   border-radius: 999px;
   color: #64748b;
@@ -618,14 +660,26 @@ onMounted(async () => {
 
 .storage-badge.cloud .storage-dot {
   background: #2f9e5b;
+  animation: ping-green 2.2s ease-out infinite;
 }
 
-/* ---------- Upload form ---------- */
+/* ================= Upload form ================= */
 .upload-form {
   display: grid;
   gap: 16px;
   margin-top: 20px;
 }
+
+.upload-form > * {
+  animation: rise 0.55s var(--ease) both;
+}
+
+.upload-form > :nth-child(1) { animation-delay: 0.35s; }
+.upload-form > :nth-child(2) { animation-delay: 0.42s; }
+.upload-form > :nth-child(3) { animation-delay: 0.49s; }
+.upload-form > :nth-child(4) { animation-delay: 0.56s; }
+.upload-form > :nth-child(5) { animation-delay: 0.63s; }
+.upload-form > :nth-child(n + 6) { animation-delay: 0.7s; }
 
 .upload-form label {
   display: grid;
@@ -633,6 +687,11 @@ onMounted(async () => {
   color: var(--navy-deep);
   font-size: 13px;
   font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.upload-form label:has(input:focus, select:focus) {
+  color: var(--blue);
 }
 
 .upload-form input,
@@ -646,7 +705,7 @@ onMounted(async () => {
   background: var(--field);
   color: var(--text);
   font: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
 }
 
 .upload-form input:hover,
@@ -659,17 +718,35 @@ onMounted(async () => {
   outline: none;
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 16%), 0 10px 20px -14px rgb(38 95 148 / 55%);
+  transform: translateY(-1px);
 }
 
-/* file picker as a drop-zone look */
+/* file picker: a drop zone that invites a file */
 .upload-form input[type='file'] {
-  padding: 18px 12px;
+  padding: 22px 12px;
   border: 2px dashed #b6c8de;
-  background: #f9fbfe;
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(135deg, rgb(143 196 245 / 0%) 0 12px, rgb(143 196 245 / 14%) 12px 24px),
+    #f9fbfe;
+  background-size: 34px 34px, auto;
   color: var(--muted);
   font-size: 13px;
   cursor: pointer;
+  animation: rise 0.55s var(--ease) 0.56s both, zone-breathe 3s ease-in-out 1.4s infinite;
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.3s var(--spring);
+}
+
+.upload-form input[type='file']:hover {
+  border-color: var(--blue);
+  background-color: #eef5fd;
+  transform: scale(1.015);
+  animation: rise 0.55s var(--ease) 0.56s both, stripes 1.2s linear infinite;
+}
+
+.upload-form input[type='file']:focus {
+  transform: none;
 }
 
 .upload-form input[type='file']::file-selector-button {
@@ -682,32 +759,55 @@ onMounted(async () => {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s var(--spring);
 }
 
 .upload-form input[type='file']::file-selector-button:hover {
   background: var(--blue-hover);
+  transform: translateY(-1px);
 }
 
-/* ---------- Buttons ---------- */
+/* ================= Buttons ================= */
 .primary-button,
 .secondary-button {
+  position: relative;
   min-height: 44px;
   padding: 10px 18px;
   border: 0;
   border-radius: 8px;
+  overflow: hidden;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
 }
 
 .primary-button {
-  background: var(--blue);
+  background: linear-gradient(135deg, #2c6ba5 0%, var(--blue) 60%, #1f4f7d 100%);
   color: #fff;
+  box-shadow: 0 12px 22px -14px rgb(38 95 148 / 85%);
+}
+
+/* light sweep across the button on hover */
+.primary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 28%), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s var(--ease);
 }
 
 .primary-button:hover:not(:disabled) {
-  background: var(--blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 26px -14px rgb(38 95 148 / 90%);
+}
+
+.primary-button:hover:not(:disabled)::before {
+  left: 130%;
 }
 
 .secondary-button {
@@ -723,20 +823,43 @@ onMounted(async () => {
 
 .page-heading .secondary-button:hover:not(:disabled) {
   background: rgb(255 255 255 / 22%);
+  transform: translateY(-2px);
 }
 
 .primary-button:active:not(:disabled),
 .secondary-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.text-button:focus-visible,
+.clear-filters:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+
+/* busy state: a progress stripe along the bottom edge */
 .primary-button:disabled,
 .secondary-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  opacity: 0.75;
+  cursor: wait;
 }
 
-/* ---------- Messages ---------- */
+.primary-button:disabled::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--sky), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: load 1.1s ease-in-out infinite;
+}
+
+/* ================= Messages ================= */
 .inline-error,
 .inline-success {
   margin: 16px 0 0;
@@ -748,15 +871,17 @@ onMounted(async () => {
   border-left: 3px solid var(--danger);
   background: #fdeceb;
   color: var(--danger);
+  animation: shake 0.45s ease both;
 }
 
 .inline-success {
   border-left: 3px solid var(--ok);
   background: #e3f4ea;
   color: #1f6b41;
+  animation: pop-in 0.5s var(--spring) both;
 }
 
-/* ---------- Documents table ---------- */
+/* ================= Filters and cards ================= */
 .count-badge {
   padding: 6px 12px;
   border-radius: 999px;
@@ -765,6 +890,7 @@ onMounted(async () => {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  animation: pop-in 0.5s var(--spring) 0.5s both;
 }
 
 .document-filters {
@@ -779,8 +905,64 @@ onMounted(async () => {
   background: #f8fafd;
 }
 
+.document-filters label,
+.requirement-form label {
+  display: grid;
+  gap: 5px;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.document-filters input,
+.document-filters select,
+.requirement-form input,
+.requirement-form select {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--text);
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease;
+}
+
+.document-filters input:focus,
+.document-filters select:focus,
+.requirement-form input:focus,
+.requirement-form select:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgb(38 95 148 / 16%);
+}
+
+.clear-filters {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--blue);
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring);
+}
+
+.clear-filters:hover {
+  background: var(--field);
+  color: var(--navy-deep);
+  transform: translateY(-1px);
+}
+
 .requirements-panel {
   margin-top: 20px;
+  animation: rise 0.6s var(--ease) 0.4s both;
 }
 
 .trainee-classes {
@@ -795,10 +977,24 @@ onMounted(async () => {
   gap: 4px;
   padding: 14px;
   border: 1px solid var(--line);
+  border-left: 3px solid var(--sky);
   border-radius: 10px;
   background: #f8fafd;
   color: var(--muted);
   font-size: 13px;
+  animation: rise 0.5s var(--ease) both;
+  transition: transform 0.3s var(--spring), box-shadow 0.3s ease, border-left-color 0.25s ease;
+}
+
+.trainee-class:nth-child(1) { animation-delay: 0.5s; }
+.trainee-class:nth-child(2) { animation-delay: 0.58s; }
+.trainee-class:nth-child(3) { animation-delay: 0.66s; }
+.trainee-class:nth-child(n + 4) { animation-delay: 0.74s; }
+
+.trainee-class:hover {
+  border-left-color: var(--blue);
+  box-shadow: 0 14px 24px -18px rgb(17 44 73 / 55%);
+  transform: translateY(-3px);
 }
 
 .trainee-class strong {
@@ -814,63 +1010,13 @@ onMounted(async () => {
   margin-top: 18px;
 }
 
-.requirement-form label {
-  display: grid;
-  gap: 5px;
-  color: var(--navy);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.requirement-form input,
-.requirement-form select {
-  width: 100%;
-  min-height: 38px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--text);
-  background: #fff;
-  font-size: 13px;
-}
-
-.document-filters label {
-  display: grid;
-  gap: 5px;
-  color: var(--navy);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.document-filters input,
-.document-filters select {
-  width: 100%;
-  min-height: 38px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--text);
-  background: #fff;
-  font-size: 13px;
-}
-
-.clear-filters {
-  min-height: 38px;
-  padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  color: var(--blue);
-  background: #fff;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .loading {
   padding: 24px 0;
+  text-align: center;
+  animation: breathe 1.4s ease-in-out infinite;
 }
 
+/* ================= Documents table: rows lay out like papers ================= */
 .table-wrap {
   overflow: auto;
   margin-top: 16px;
@@ -902,17 +1048,36 @@ th {
   white-space: nowrap;
 }
 
+tbody tr {
+  animation: paper-in 0.55s var(--ease) both;
+  transition: background 0.2s ease, box-shadow 0.25s ease;
+}
+
+tbody tr:nth-child(1) { animation-delay: 0.45s; }
+tbody tr:nth-child(2) { animation-delay: 0.52s; }
+tbody tr:nth-child(3) { animation-delay: 0.59s; }
+tbody tr:nth-child(4) { animation-delay: 0.66s; }
+tbody tr:nth-child(5) { animation-delay: 0.73s; }
+tbody tr:nth-child(6) { animation-delay: 0.8s; }
+tbody tr:nth-child(n + 7) { animation-delay: 0.87s; }
+
 tbody tr:last-child td {
   border-bottom: 0;
 }
 
 tbody tr:hover {
   background: #f6f9fd;
+  box-shadow: inset 3px 0 0 var(--sky);
 }
 
 .doc-name {
   color: var(--navy-deep);
   font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+tbody tr:hover .doc-name {
+  color: var(--blue);
 }
 
 .status {
@@ -924,6 +1089,7 @@ tbody tr:hover {
   font-size: 12px;
   font-weight: 700;
   text-transform: capitalize;
+  animation: pop-in 0.5s var(--spring) both;
 }
 
 .status.approved {
@@ -936,10 +1102,16 @@ tbody tr:hover {
   color: var(--danger);
 }
 
+/* pending items get a soft breathing glow so they stand out */
+.status:not(.approved):not(.rejected):not(.none) {
+  animation: pop-in 0.5s var(--spring) both, glow-amber 2.8s ease-in-out 1.2s infinite;
+}
+
 .status.none {
   padding: 4px 0;
   background: none;
   color: var(--muted);
+  animation: none;
 }
 
 .access {
@@ -971,11 +1143,17 @@ tbody tr:hover {
   font-weight: 600;
   text-decoration: none;
   cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring);
 }
 
 .text-button:hover:not(:disabled) {
   background: var(--field);
   color: var(--navy-deep);
+  transform: translateY(-1px);
+}
+
+.text-button:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .text-button:disabled {
@@ -992,19 +1170,12 @@ tbody tr:hover {
   color: #1f6b41;
 }
 
-.reject {
-  color: var(--danger);
-}
-
-.reject:hover:not(:disabled) {
-  background: #fdeceb;
-  color: var(--danger);
-}
-
+.reject,
 .delete-button {
   color: var(--danger);
 }
 
+.reject:hover:not(:disabled),
 .delete-button:hover:not(:disabled) {
   background: #fdeceb;
   color: #a52e2e;
@@ -1016,7 +1187,173 @@ tbody tr:hover {
   color: var(--muted);
 }
 
-/* ---------- Responsive ---------- */
+/* ================= Keyframes ================= */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* each row settles into place like a sheet of paper */
+@keyframes paper-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) rotate(-0.4deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes sheet-float {
+  0%,
+  100% {
+    transform: rotate(12deg) translateY(0);
+  }
+  50% {
+    transform: rotate(9deg) translateY(10px);
+  }
+}
+
+@keyframes attention {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(242 190 60 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgb(242 190 60 / 20%);
+  }
+}
+
+@keyframes zone-breathe {
+  0%,
+  100% {
+    border-color: #b6c8de;
+  }
+  50% {
+    border-color: var(--sky);
+  }
+}
+
+@keyframes stripes {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 34px 0, 0 0;
+  }
+}
+
+@keyframes glow-amber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(201 138 0 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(201 138 0 / 16%);
+  }
+}
+
+@keyframes ping-green {
+  0% {
+    box-shadow: 0 0 0 0 rgb(47 158 91 / 55%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px rgb(47 158 91 / 0%);
+  }
+}
+
+@keyframes load {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+/* ================= Responsive ================= */
 @media (max-width: 1000px) {
   .layout {
     grid-template-columns: 1fr;
@@ -1026,20 +1363,18 @@ tbody tr:hover {
     position: static;
   }
 
-  .document-filters {
-    grid-template-columns: 1fr 1fr;
+  .list-panel {
+    animation-name: rise;
   }
 
+  .document-filters,
   .requirement-form {
     grid-template-columns: 1fr 1fr;
   }
 }
 
 @media (max-width: 560px) {
-  .document-filters {
-    grid-template-columns: 1fr;
-  }
-
+  .document-filters,
   .requirement-form {
     grid-template-columns: 1fr;
   }
@@ -1048,6 +1383,10 @@ tbody tr:hover {
     flex-direction: column;
     align-items: flex-start;
     padding: 22px 20px;
+  }
+
+  .page-heading::after {
+    display: none;
   }
 
   .page-heading h1 {
@@ -1064,11 +1403,40 @@ tbody tr:hover {
   }
 }
 
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .page-heading,
+  .page-heading::after,
+  .summary,
+  .upload-panel,
+  .list-panel,
+  .storage-badge.cloud .storage-dot,
+  .upload-form > *,
+  .upload-form input[type='file'],
+  .upload-form input[type='file']:hover,
+  .primary-button:disabled::after,
+  .inline-error,
+  .inline-success,
+  .count-badge,
+  .requirements-panel,
+  .trainee-class,
+  .loading,
+  tbody tr,
+  .status {
+    animation: none;
+  }
+
+  .panel,
   .upload-form input,
   .upload-form select,
+  .upload-form label,
   .primary-button,
-  .secondary-button {
+  .primary-button::before,
+  .secondary-button,
+  .clear-filters,
+  .trainee-class,
+  .text-button,
+  tbody tr {
     transition: none;
   }
 }
