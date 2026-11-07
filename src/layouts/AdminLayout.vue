@@ -100,12 +100,14 @@ onMounted(async () => {
   </div>
 </template>
 
-<style scoped>
+<<style scoped>
 .app-shell {
   --navy: #173a60;
   --navy-deep: #112c49;
   --blue: #265f94;
   --sky: #8fc4f5;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   min-height: 100vh;
   display: grid;
@@ -114,7 +116,7 @@ onMounted(async () => {
   background: var(--page, #f3f6fb);
 }
 
-/* ---------- Sidebar ---------- */
+/* ================= Sidebar ================= */
 .sidebar {
   position: sticky;
   top: 0;
@@ -124,8 +126,30 @@ onMounted(async () => {
   gap: 22px;
   padding: 24px 14px 18px;
   overflow-y: auto;
+  overflow-x: hidden;
+  isolation: isolate;
   color: #e3edf7;
-  background: linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+  background:
+    radial-gradient(90% 40% at 0% 0%, rgb(143 196 245 / 22%), transparent 70%),
+    linear-gradient(180deg, var(--navy) 0%, var(--navy-deep) 100%);
+  animation: slide-in-left 0.6s var(--ease) both;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 20%) transparent;
+}
+
+/* a thin light that travels down the right edge */
+.sidebar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: -1;
+  width: 2px;
+  height: 120px;
+  background: linear-gradient(180deg, transparent, var(--sky), transparent);
+  opacity: 0.7;
+  animation: edge-travel 6s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .side-top {
@@ -133,6 +157,7 @@ onMounted(async () => {
   gap: 18px;
 }
 
+/* ---------- Brand ---------- */
 .brand {
   display: flex;
   align-items: center;
@@ -140,6 +165,7 @@ onMounted(async () => {
   padding: 0 8px;
   color: #fff;
   text-decoration: none;
+  animation: fade-down 0.6s var(--ease) 0.1s both;
 }
 
 .brand-mark {
@@ -149,6 +175,11 @@ onMounted(async () => {
   height: 36px;
   border-radius: 10px;
   object-fit: contain;
+  transition: transform 0.45s var(--spring);
+}
+
+.brand:hover .brand-mark {
+  transform: rotate(-10deg) scale(1.12);
 }
 
 .brand-text {
@@ -167,8 +198,9 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
-/* ---------- Account card ---------- */
+/* ================= Account card ================= */
 .account {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -176,9 +208,19 @@ onMounted(async () => {
   border: 1px solid rgb(255 255 255 / 12%);
   border-radius: 12px;
   background: rgb(255 255 255 / 7%);
+  overflow: hidden;
+  animation: pop-in 0.6s var(--spring) 0.2s both;
+  transition: background 0.25s ease, border-color 0.25s ease, transform 0.3s var(--ease);
+}
+
+.account:hover {
+  background: rgb(255 255 255 / 11%);
+  border-color: rgb(143 196 245 / 40%);
+  transform: translateY(-1px);
 }
 
 .avatar {
+  position: relative;
   flex: none;
   display: grid;
   place-items: center;
@@ -188,6 +230,41 @@ onMounted(async () => {
   background: #e3effb;
   color: var(--navy-deep);
   font-weight: 800;
+}
+
+/* slowly turning ring around the avatar */
+.avatar::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: -1;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--sky), transparent 40%, var(--sky) 70%, transparent);
+  animation: spin 6s linear infinite;
+}
+
+/* the page's own colour fills the gap between the ring and the avatar */
+.avatar::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: 50%;
+  background: #1d4470;
+}
+
+/* online dot */
+.account::after {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: 40px;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #1d4470;
+  border-radius: 50%;
+  background: #5fd08c;
+  animation: ping 2.4s ease-out infinite;
 }
 
 .user-summary {
@@ -213,7 +290,7 @@ onMounted(async () => {
   text-transform: capitalize;
 }
 
-/* ---------- Navigation ---------- */
+/* ================= Navigation ================= */
 nav {
   display: grid;
   gap: 4px;
@@ -227,18 +304,59 @@ nav a {
   font-size: 14.5px;
   font-weight: 500;
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
+  overflow: hidden;
+  isolation: isolate;
+  animation: slide-in-left 0.55s var(--ease) both;
+  transition: color 0.2s ease, transform 0.3s var(--ease);
+}
+
+/* staggered entrance: works for short and long (admin) menus */
+nav a:nth-child(1)  { animation-delay: 0.30s; }
+nav a:nth-child(2)  { animation-delay: 0.35s; }
+nav a:nth-child(3)  { animation-delay: 0.40s; }
+nav a:nth-child(4)  { animation-delay: 0.45s; }
+nav a:nth-child(5)  { animation-delay: 0.50s; }
+nav a:nth-child(6)  { animation-delay: 0.55s; }
+nav a:nth-child(7)  { animation-delay: 0.60s; }
+nav a:nth-child(8)  { animation-delay: 0.65s; }
+nav a:nth-child(9)  { animation-delay: 0.70s; }
+nav a:nth-child(10) { animation-delay: 0.75s; }
+nav a:nth-child(11) { animation-delay: 0.80s; }
+nav a:nth-child(n + 12) { animation-delay: 0.85s; }
+
+/* the hover highlight grows from the left edge */
+nav a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9px;
+  background: linear-gradient(90deg, rgb(143 196 245 / 22%), rgb(143 196 245 / 6%));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s var(--ease);
 }
 
 nav a:hover {
   color: #fff;
-  background: rgb(255 255 255 / 9%);
+  transform: translateX(5px);
 }
 
+nav a:hover::after {
+  transform: scaleX(1);
+}
+
+/* active page: glowing bar and a soft highlight */
 nav a.router-link-active {
   color: #fff;
   background: rgb(143 196 245 / 18%);
   font-weight: 700;
+  transform: translateX(3px);
+}
+
+nav a.router-link-active::after {
+  transform: scaleX(1);
+  opacity: 0.6;
 }
 
 nav a.router-link-active::before {
@@ -250,6 +368,8 @@ nav a.router-link-active::before {
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--sky);
+  box-shadow: 0 0 12px 1px rgb(143 196 245 / 75%);
+  animation: bar-grow 0.45s var(--spring) both;
 }
 
 nav a:focus-visible,
@@ -259,11 +379,12 @@ nav a:focus-visible,
   outline-offset: 2px;
 }
 
-/* ---------- Bottom ---------- */
+/* ================= Bottom ================= */
 .side-bottom {
   display: grid;
   gap: 12px;
   margin-top: auto;
+  animation: fade-in 0.8s ease 0.9s both;
 }
 
 .analytics-preference {
@@ -273,6 +394,12 @@ nav a:focus-visible,
   padding: 0 4px;
   color: #c3d4e6;
   font-size: 12px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.analytics-preference:hover {
+  color: #fff;
 }
 
 .analytics-preference input {
@@ -281,9 +408,11 @@ nav a:focus-visible,
   height: 15px;
   margin: 0;
   accent-color: var(--sky);
+  cursor: pointer;
 }
 
 .sign-out {
+  position: relative;
   padding: 11px 14px;
   border: 1px solid rgb(255 255 255 / 22%);
   border-radius: 9px;
@@ -292,18 +421,39 @@ nav a:focus-visible,
   font: inherit;
   font-weight: 700;
   text-align: center;
+  overflow: hidden;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.2s var(--spring);
 }
 
+/* hovering sign out warms the button so it reads as "leaving" */
 .sign-out:hover:not(:disabled) {
-  background: rgb(255 255 255 / 10%);
-  border-color: rgb(255 255 255 / 40%);
+  background: rgb(255 120 100 / 14%);
+  border-color: rgb(255 150 135 / 55%);
+  color: #ffd9d3;
+  transform: translateY(-1px);
+}
+
+.sign-out:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .sign-out:disabled {
   cursor: wait;
-  opacity: 0.7;
+  opacity: 0.8;
+}
+
+.sign-out:disabled::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--sky), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: load 1.1s ease-in-out infinite;
 }
 
 .sign-out-compact {
@@ -317,13 +467,99 @@ nav a:focus-visible,
   text-align: center;
 }
 
-/* ---------- Main ---------- */
+/* ================= Main ================= */
 .main-content {
   min-width: 0;
   padding: 30px;
 }
 
-/* ---------- Tablet and phone: top bar ---------- */
+/* ================= Keyframes ================= */
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-22px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-down {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes bar-grow {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes edge-travel {
+  0% {
+    top: -140px;
+  }
+  100% {
+    top: 110%;
+  }
+}
+
+@keyframes ping {
+  0% {
+    box-shadow: 0 0 0 0 rgb(95 208 140 / 65%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px rgb(95 208 140 / 0%);
+  }
+}
+
+@keyframes load {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+/* ================= Tablet and phone: top bar ================= */
 @media (max-width: 860px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -337,6 +573,11 @@ nav a:focus-visible,
     padding: 12px 14px 10px;
     overflow: visible;
     box-shadow: 0 8px 20px -12px rgb(17 44 73 / 70%);
+    animation-name: fade-down;
+  }
+
+  .sidebar::after {
+    display: none;
   }
 
   .side-top {
@@ -359,6 +600,13 @@ nav a:focus-visible,
     justify-self: end;
     padding: 6px 8px 6px 10px;
     border-radius: 999px;
+  }
+
+  .account::after {
+    top: 6px;
+    left: 30px;
+    width: 8px;
+    height: 8px;
   }
 
   .avatar {
@@ -394,6 +642,16 @@ nav a:focus-visible,
     padding: 8px 14px;
     border-radius: 999px;
     white-space: nowrap;
+    animation-name: fade-down;
+  }
+
+  nav a:hover,
+  nav a.router-link-active {
+    transform: none;
+  }
+
+  nav a::after {
+    border-radius: 999px;
   }
 
   nav a.router-link-active::before {
@@ -409,8 +667,26 @@ nav a:focus-visible,
   }
 }
 
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar::after,
+  .brand,
+  .account,
+  .account::after,
+  .avatar::before,
   nav a,
+  nav a.router-link-active::before,
+  .side-bottom,
+  .sign-out:disabled::after {
+    animation: none;
+  }
+
+  .brand-mark,
+  .account,
+  nav a,
+  nav a::after,
+  .analytics-preference,
   .sign-out {
     transition: none;
   }
