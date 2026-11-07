@@ -2,10 +2,16 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { getSession, logout } from '../services/api'
+import { isAnalyticsConsentGranted, setAnalyticsConsent } from '../services/analytics'
 
 const router = useRouter()
 const user = ref(null)
 const signingOut = ref(false)
+const analyticsConsent = ref(isAnalyticsConsentGranted())
+
+function updateAnalyticsConsent() {
+  setAnalyticsConsent(analyticsConsent.value)
+}
 
 const links = [
   { label: 'Dashboard', to: '/dashboard', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
@@ -77,6 +83,10 @@ onMounted(async () => {
       </nav>
 
       <div class="side-bottom">
+        <label class="analytics-preference">
+          <input v-model="analyticsConsent" type="checkbox" @change="updateAnalyticsConsent">
+          <span>Share usage analytics</span>
+        </label>
         <button class="sign-out" :disabled="signingOut" @click="signOut">
           {{ signingOut ? 'Signing out...' : 'Sign out' }}
         </button>
@@ -254,6 +264,23 @@ nav a:focus-visible,
   display: grid;
   gap: 12px;
   margin-top: auto;
+}
+
+.analytics-preference {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px;
+  color: #c3d4e6;
+  font-size: 12px;
+}
+
+.analytics-preference input {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--sky);
 }
 
 .sign-out {

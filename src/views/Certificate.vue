@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, type CSSProperties } from 'vue'
 import { apiFileUrl, apiGet, apiPost, getSession } from '../services/api'
 
 type Row = Record<string, string | number | boolean | null | undefined>
@@ -61,6 +61,8 @@ const templateForm = reactive({
 })
 const templateFile = ref<File | null>(null)
 const logoFile = ref<File | null>(null)
+const templateFilePreviewUrl = ref('')
+const logoPreviewUrl = ref('')
 const layoutFields = ['trainee_name', 'program_name', 'date_completed', 'certificate_number', 'signatory_name', 'verification_code'] as const
 type LayoutField = typeof layoutFields[number]
 const layoutLabels: Record<LayoutField, string> = {
@@ -79,10 +81,85 @@ const fieldLayout = reactive<Record<LayoutField, { x: string; y: string; font_si
 const isAdmin = computed(() => role.value === 'administrator')
 const isStaff = computed(() => ['administrator', 'staff'].includes(role.value))
 const isTrainee = computed(() => role.value === 'trainee')
+const activeTemplateFileUrl = computed(() => {
+  if (templateForm.mode !== 'upload') return ''
+  const templateId = templateForm.source_template_id || String(settingData.value.certificate_template?.template_id || '')
+  if (!templateId) return ''
+  const version = settingData.value.certificate_template_versions?.find((item) => String(item.template_id) === templateId)
+  const activeTemplate = settingData.value.certificate_template
+  const activeFilePath = String(activeTemplate?.template_id || '') === templateId ? activeTemplate?.file_path : ''
+  const filePath = version?.file_path || activeFilePath
+  return filePath ? apiFileUrl(`/certificate-templates/${templateId}/file`) : ''
+})
+const uploadedBackgroundUrl = computed(() => templateFilePreviewUrl.value || activeTemplateFileUrl.value)
+const uploadedBackgroundIsImage = computed(() => {
+  const file = templateFile.value
+  if (file) return file.type.startsWith('image/')
+  const templateId = templateForm.source_template_id || String(settingData.value.certificate_template?.template_id || '')
+  const version = settingData.value.certificate_template_versions?.find((item) => String(item.template_id) === templateId)
+  const path = String(version?.file_path || settingData.value.certificate_template?.file_path || '')
+  return /\.(png|jpe?g|gif|webp)(?:[?#].*)?$/i.test(path)
+})
+const previewBody = computed(() => {
+  const placeholders: Record<string, string> = {
+    trainee_name: 'Alex Morgan',
+    program_name: 'Workplace Safety Training',
+    date_completed: 'November 7, 2026',
+    cert_no: 'LSI-2026-001',
+    certificate_number: 'LSI-2026-001',
+    signatory_name: templateForm.signatory_name || 'Authorized Signatory',
+    signatory_title: templateForm.signatory_title || 'Training Director',
+    verification_code: 'VERIFY-8F3A21'
+  }
+  return templateForm.body_text.replace(/\{([^}]+)\}/g, (placeholder, key: string) => placeholders[key] ?? placeholder)
+})
+const previewFont = computed(() => ({
+  helvetica: 'Arial, Helvetica, sans-serif',
+  times: '"Times New Roman", Times, serif',
+  courier: '"Courier New", Courier, monospace'
+}[templateForm.font] || 'Arial, Helvetica, sans-serif'))
 const filteredCertificates = computed(() => {
   const search = filter.value.trim().toLowerCase()
   return certificates.value.filter((row) => !search || [row.trainee_name, row.program_name, row.class_name, row.certificate_number, row.status].some((value) => String(value || '').toLowerCase().includes(search)))
 })
+
+watch(templateFile, (file) => {
+  if (templateFilePreviewUrl.value) URL.revokeObjectURL(templateFilePreviewUrl.value)
+  templateFilePreviewUrl.value = file ? URL.createObjectURL(file) : ''
+})
+watch(logoFile, (file) => {
+  if (logoPreviewUrl.value) URL.revokeObjectURL(logoPreviewUrl.value)
+  logoPreviewUrl.value = file ? URL.createObjectURL(file) : ''
+})
+onBeforeUnmount(() => {
+  if (templateFilePreviewUrl.value) URL.revokeObjectURL(templateFilePreviewUrl.value)
+  if (logoPreviewUrl.value) URL.revokeObjectURL(logoPreviewUrl.value)
+})
+
+function previewFieldStyle(field: LayoutField): CSSProperties {
+  const layout = fieldLayout[field]
+  const align: CSSProperties['textAlign'] = layout.align === 'left' || layout.align === 'right' ? layout.align : 'center'
+  const translateX = align === 'left' ? '0%' : align === 'right' ? '-100%' : '-50%'
+  return {
+    left: `${layout.x}%`,
+    top: `${layout.y}%`,
+    fontSize: `${layout.font_size}px`,
+    textAlign: align,
+    transform: `translate(${translateX}, -50%)`
+  }
+}
+
+function previewFieldText(field: LayoutField) {
+  const values: Record<LayoutField, string> = {
+    trainee_name: 'Alex Morgan',
+    program_name: 'Workplace Safety Training',
+    date_completed: 'November 7, 2026',
+    certificate_number: 'LSI-2026-001',
+    signatory_name: templateForm.signatory_name || 'Authorized Signatory',
+    verification_code: 'VERIFY-8F3A21'
+  }
+  return values[field]
+}
 
 function money(value: unknown) {
   return String(value ?? '')
@@ -461,136 +538,449 @@ onMounted(async () => {
       </div>
       <button class="secondary-button" :disabled="loading" @click="reload">Refresh</button>
     </header>
+
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
     <p v-if="notice" class="inline-success" role="status">{{ notice }}</p>
-    <p v-if="loading" class="muted">Loading certificate data…</p>
+    <p v-if="loading" class="muted loading">Loading certificate data…</p>
 
+    <!-- ===================== SIGNING ===================== -->
     <template v-if="!loading && mode === 'signing'">
       <section v-if="selected" class="panel signing-panel">
-        <div class="section-heading"><div><h2>{{ selected.certificate_number }}</h2><p class="muted">{{ selected.trainee_name }} · {{ selected.program_name }} · {{ selected.class_name }}</p></div><button class="secondary-button" @click="selected = null">Back to queue</button></div>
-        <iframe class="preview" :src="apiFileUrl(`/certificates/${selected.certificate_id}/sign-preview`)" title="Certificate signing preview"></iframe>
-        <form class="sign-actions" @submit.prevent="signCertificate">
-          <label>Password confirmation<input v-model="password" type="password" autocomplete="current-password" required></label>
-          <button class="primary-button" :disabled="busy">{{ busy ? 'Signing…' : 'Sign certificate' }}</button>
-        </form>
-        <form class="reject-form" @submit.prevent="rejectSignature">
-          <label>Return to staff with remarks<textarea v-model.trim="rejectionRemarks" maxlength="1000" rows="2" required></textarea></label>
-          <button class="danger-button" :disabled="busy">Reject / return</button>
-        </form>
+        <div class="section-heading">
+          <div>
+            <h2>{{ selected.certificate_number }}</h2>
+            <p class="muted">{{ selected.trainee_name }} · {{ selected.program_name }} · {{ selected.class_name }}</p>
+          </div>
+          <button class="secondary-button" @click="selected = null">← Back to queue</button>
+        </div>
+
+        <div class="signing-layout">
+          <iframe class="preview" :src="apiFileUrl(`/certificates/${selected.certificate_id}/sign-preview`)" title="Certificate signing preview"></iframe>
+
+          <aside class="signing-side">
+            <form class="side-card sign-actions" @submit.prevent="signCertificate">
+              <h3>Sign this certificate</h3>
+              <p class="muted">Confirm your password to apply your signature.</p>
+              <label>Password confirmation<input v-model="password" type="password" autocomplete="current-password" required></label>
+              <button class="primary-button" :disabled="busy">{{ busy ? 'Signing…' : 'Sign certificate' }}</button>
+            </form>
+
+            <form class="side-card reject-form" @submit.prevent="rejectSignature">
+              <h3>Return to staff</h3>
+              <p class="muted">Explain what needs to be corrected.</p>
+              <label>Remarks<textarea v-model.trim="rejectionRemarks" maxlength="1000" rows="3" required></textarea></label>
+              <button class="danger-button" :disabled="busy">Reject / return</button>
+            </form>
+          </aside>
+        </div>
       </section>
+
       <section v-else class="panel">
-        <h2>Assigned certificates</h2>
-        <div class="table-wrap"><table><thead><tr><th>Certificate</th><th>Trainee</th><th>Program / class</th><th>Completed</th><th>Action</th></tr></thead>
-          <tbody><tr v-for="item in certificates" :key="String(item.certificate_id)"><td>{{ item.certificate_number }}</td><td>{{ item.trainee_name }}</td><td>{{ item.program_name }} / {{ item.class_name }}</td><td>{{ item.completion_date }}</td><td><button class="text-button" @click="openSigning(item)">Review PDF & sign</button></td></tr><tr v-if="!certificates.length"><td colspan="5" class="empty">No certificates currently assigned to you.</td></tr></tbody>
-        </table></div>
+        <div class="section-heading">
+          <div>
+            <h2>Assigned certificates</h2>
+            <p class="muted">Open a certificate to review the PDF and sign it.</p>
+          </div>
+          <span class="count-badge">{{ certificates.length }} waiting</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Certificate</th><th>Trainee</th><th>Program / class</th><th>Completed</th><th></th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in certificates" :key="String(item.certificate_id)">
+                <td class="strong">{{ item.certificate_number }}</td>
+                <td>{{ item.trainee_name }}</td>
+                <td>{{ item.program_name }} / {{ item.class_name }}</td>
+                <td>{{ item.completion_date }}</td>
+                <td class="end"><button class="text-button" @click="openSigning(item)">Review PDF &amp; sign</button></td>
+              </tr>
+              <tr v-if="!certificates.length"><td colspan="5" class="empty">No certificates currently assigned to you.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </template>
 
+    <!-- ===================== SETTINGS ===================== -->
     <template v-else-if="!loading && mode === 'settings' && isAdmin">
-      <section class="panel">
-        <h2>Eligibility requirements</h2>
-        <form class="form-grid" @submit.prevent="saveTemplate">
-          <label>Minimum attendance (%)<input v-model="templateForm.min_attendance_percentage" type="number" min="0" max="100" step="0.1" required></label>
-          <label>Required assessment count<input v-model="templateForm.required_assessment_count" type="number" min="1" max="100" required></label>
-          <label class="checkbox"><input v-model="templateForm.require_documents" type="checkbox"> Require approved documents</label>
-          <label class="checkbox"><input v-model="templateForm.require_assessments" type="checkbox"> Require completed assessments</label>
-        </form>
-      </section>
-      <section class="panel">
-        <h2>Certificate template</h2>
-        <p v-if="editingTemplateVersion !== null" class="muted" role="status">Editing v{{ editingTemplateVersion }} as a new draft. Saving creates a new version; existing versions are preserved. <button type="button" class="text-button" @click="cancelTemplateEdit">Cancel edit</button></p>
-        <p class="muted">Template files and logos are limited to 5 MB and stored privately. Placeholders: {trainee_name}, {program_name}, {date_completed}, {cert_no}, {signatory_name}, {signatory_title}, {verification_code}.</p>
-        <form class="form-grid" @submit.prevent="saveTemplate">
-          <label>Template mode<select v-model="templateForm.mode"><option value="generated">Generated design</option><option value="upload">Uploaded background</option></select></label>
-          <label>Save as<select v-model="templateForm.save_action"><option value="activate">Activate immediately</option><option value="draft">Save draft version</option></select></label>
-          <label>Institution name<input v-model.trim="templateForm.institution_name" maxlength="150" required></label>
-          <label>Title text<input v-model.trim="templateForm.title_text" maxlength="150" required></label>
-          <label class="wide">Certificate body<textarea v-model.trim="templateForm.body_text" maxlength="2000" rows="3" required></textarea></label>
-          <label>Printed signatory name<input v-model.trim="templateForm.signatory_name" maxlength="150" required></label>
-          <label>Printed signatory title<input v-model.trim="templateForm.signatory_title" maxlength="150" required></label>
-          <label>Border<select v-model="templateForm.border_style"><option value="none">None</option><option value="single">Single</option><option value="double">Double</option></select></label>
-          <label>Accent color<input v-model="templateForm.accent_color" type="color" required></label>
-          <label>Font<select v-model="templateForm.font"><option value="helvetica">Helvetica</option><option value="times">Times</option><option value="courier">Courier</option></select></label>
-          <label v-if="templateForm.mode === 'upload'">Background (PDF/PNG/JPG, max 5 MB)<input type="file" accept=".pdf,.png,.jpg,.jpeg" @change="onTemplateFile"></label>
-          <label>Logo (PNG/JPG, max 5 MB)<input type="file" accept=".png,.jpg,.jpeg" @change="onLogoFile"></label>
-          <template v-if="templateForm.mode === 'upload'">
-            <p class="wide muted">Set field positions as percentages of the page, plus font size and alignment.</p>
-            <div v-for="field in layoutFields" :key="field" class="layout-item">
-              <strong>{{ layoutLabels[field] }}</strong><label>X %<input v-model="fieldLayout[field].x" type="number" min="0" max="100" step="0.1"></label>
-              <label>Y %<input v-model="fieldLayout[field].y" type="number" min="0" max="100" step="0.1"></label>
-              <label>Font size<input v-model="fieldLayout[field].font_size" type="number" min="6" max="72" step="0.5"></label>
-              <label>Align<select v-model="fieldLayout[field].align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
+      <nav class="jump-nav" aria-label="Settings sections">
+        <button
+          v-for="item in [['sec-eligibility', '1  Eligibility'], ['sec-template', '2  Template'], ['sec-versions', '3  Versions'], ['sec-signatories', '4  Signatories']]"
+          :key="item[0]"
+          type="button"
+          @click="$el.querySelector('#' + item[0])?.scrollIntoView({ behavior: 'smooth', block: 'start' })"
+        >{{ item[1] }}</button>
+      </nav>
+
+      <!-- Eligibility and template share one form and one save button -->
+      <form class="settings-form" @submit.prevent="saveTemplate">
+        <section id="sec-eligibility" class="panel">
+          <div class="section-heading">
+            <div>
+              <h2>Eligibility requirements</h2>
+              <p class="muted">What a trainee must complete before a certificate can be issued.</p>
             </div>
-          </template>
-          <button class="primary-button wide" :disabled="busy">{{ busy ? 'Saving…' : 'Save template and eligibility settings' }}</button>
-        </form>
-        <div class="table-wrap"><table><thead><tr><th>Version</th><th>Mode</th><th>Status</th><th>Actions</th></tr></thead>
-          <tbody><tr v-for="item in settingData.certificate_template_versions || []" :key="String(item.template_id)"><td>v{{ item.version }}</td><td>{{ item.mode }}</td><td>{{ Number(item.is_active) ? 'Active' : 'Draft' }}</td><td class="row-actions"><button class="text-button" :disabled="busy" @click="editTemplate(item)">Edit</button><button v-if="!Number(item.is_active)" class="text-button" :disabled="busy" @click="activateTemplate(item.template_id)">Create active version from this</button><button v-if="!Number(item.is_active)" class="text-button danger" :disabled="busy" @click="deleteTemplate(item)">Delete</button><a v-if="item.file_path" class="text-button" :href="apiFileUrl(`/certificate-templates/${item.template_id}/file`)" target="_blank" rel="noopener">Preview file</a></td></tr><tr v-if="!settingData.certificate_template_versions?.length"><td colspan="4" class="empty">No template versions.</td></tr></tbody>
-        </table></div>
+          </div>
+          <div class="form-grid cols-4">
+            <label>Minimum attendance (%)<input v-model="templateForm.min_attendance_percentage" type="number" min="0" max="100" step="0.1" required></label>
+            <label>Required assessment count<input v-model="templateForm.required_assessment_count" type="number" min="1" max="100" required></label>
+            <label class="checkbox"><input v-model="templateForm.require_documents" type="checkbox"> Require approved documents</label>
+            <label class="checkbox"><input v-model="templateForm.require_assessments" type="checkbox"> Require completed assessments</label>
+          </div>
+        </section>
+
+        <section id="sec-template" class="panel">
+          <div class="section-heading">
+            <div>
+              <h2>Certificate template</h2>
+              <p class="muted">Files and logos are limited to 5 MB and stored privately.</p>
+            </div>
+          </div>
+
+          <p v-if="editingTemplateVersion !== null" class="edit-banner" role="status">
+            Editing v{{ editingTemplateVersion }} as a new draft. Saving creates a new version; existing versions are preserved.
+            <button type="button" class="text-button" @click="cancelTemplateEdit">Cancel edit</button>
+          </p>
+
+          <div class="template-layout">
+            <!-- left: all the fields, grouped -->
+            <div class="template-fields">
+              <div class="group">
+                <h3 class="group-title">Mode and saving</h3>
+                <div class="form-grid cols-2">
+                  <label>Template mode<select v-model="templateForm.mode"><option value="generated">Generated design</option><option value="upload">Uploaded background</option></select></label>
+                  <label>Save as<select v-model="templateForm.save_action"><option value="activate">Activate immediately</option><option value="draft">Save draft version</option></select></label>
+                </div>
+              </div>
+
+              <div class="group">
+                <h3 class="group-title">Content</h3>
+                <p class="hint">Placeholders: {trainee_name}, {program_name}, {date_completed}, {cert_no}, {signatory_name}, {signatory_title}, {verification_code}.</p>
+                <div class="form-grid cols-2">
+                  <label>Institution name<input v-model.trim="templateForm.institution_name" maxlength="150" required></label>
+                  <label>Title text<input v-model.trim="templateForm.title_text" maxlength="150" required></label>
+                  <label class="wide">Certificate body<textarea v-model.trim="templateForm.body_text" maxlength="2000" rows="3" required></textarea></label>
+                  <label>Printed signatory name<input v-model.trim="templateForm.signatory_name" maxlength="150" required></label>
+                  <label>Printed signatory title<input v-model.trim="templateForm.signatory_title" maxlength="150" required></label>
+                </div>
+              </div>
+
+              <div class="group">
+                <h3 class="group-title">Appearance</h3>
+                <div class="form-grid cols-2">
+                  <label>Border<select v-model="templateForm.border_style"><option value="none">None</option><option value="single">Single</option><option value="double">Double</option></select></label>
+                  <label>Font<select v-model="templateForm.font"><option value="helvetica">Helvetica</option><option value="times">Times</option><option value="courier">Courier</option></select></label>
+                  <label>Accent color<input v-model="templateForm.accent_color" type="color" required></label>
+                  <label>Logo (PNG/JPG, max 5 MB)<input type="file" accept=".png,.jpg,.jpeg" @change="onLogoFile"></label>
+                  <label v-if="templateForm.mode === 'upload'" class="wide">Background (PDF/PNG/JPG, max 5 MB)<input type="file" accept=".pdf,.png,.jpg,.jpeg" @change="onTemplateFile"></label>
+                </div>
+              </div>
+
+              <div v-if="templateForm.mode === 'upload'" class="group">
+                <h3 class="group-title">Field positions</h3>
+                <p class="hint">Set field positions as percentages of the page, plus font size and alignment.</p>
+                <div class="layout-list">
+                  <div v-for="field in layoutFields" :key="field" class="layout-item">
+                    <strong>{{ layoutLabels[field] }}</strong>
+                    <label>X %<input v-model="fieldLayout[field].x" type="number" min="0" max="100" step="0.1"></label>
+                    <label>Y %<input v-model="fieldLayout[field].y" type="number" min="0" max="100" step="0.1"></label>
+                    <label>Font size<input v-model="fieldLayout[field].font_size" type="number" min="6" max="72" step="0.5"></label>
+                    <label>Align<select v-model="fieldLayout[field].align"><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- right: live preview stays in view while editing -->
+            <aside class="template-preview">
+              <section class="certificate-live-preview" aria-live="polite">
+                <div class="section-heading">
+                  <div>
+                    <h3>Live certificate preview</h3>
+                    <p class="muted">Updates as you edit, using sample trainee details.</p>
+                  </div>
+                  <a v-if="templateForm.mode === 'upload' && uploadedBackgroundUrl && !uploadedBackgroundIsImage" class="text-button" :href="uploadedBackgroundUrl" target="_blank" rel="noopener">Open PDF background</a>
+                </div>
+
+                <div v-if="templateForm.mode === 'upload'" class="certificate-preview-sheet uploaded-preview" :style="{ '--preview-accent': templateForm.accent_color, fontFamily: previewFont }">
+                  <img v-if="uploadedBackgroundUrl && uploadedBackgroundIsImage" class="certificate-background-image" :src="uploadedBackgroundUrl" alt="">
+                  <div v-else class="uploaded-preview-placeholder">
+                    <span v-if="uploadedBackgroundUrl">PDF background selected; previewing the edited field positions.</span>
+                    <span v-else>Choose an image or PDF background to preview your uploaded design.</span>
+                  </div>
+                  <div v-for="field in layoutFields" :key="field" class="positioned-preview-field" :style="previewFieldStyle(field)">{{ previewFieldText(field) }}</div>
+                </div>
+
+                <div v-else class="certificate-preview-sheet generated-preview" :class="`border-${templateForm.border_style}`" :style="{ '--preview-accent': templateForm.accent_color, fontFamily: previewFont }">
+                  <img v-if="logoPreviewUrl" class="certificate-preview-logo" :src="logoPreviewUrl" alt="Selected certificate logo">
+                  <p class="preview-institution">{{ templateForm.institution_name || 'Institution name' }}</p>
+                  <h4>{{ templateForm.title_text || 'Certificate title' }}</h4>
+                  <p class="preview-body">{{ previewBody }}</p>
+                  <div class="preview-signature">
+                    <strong>{{ templateForm.signatory_name || 'Authorized Signatory' }}</strong>
+                    <span>{{ templateForm.signatory_title || 'Signatory title' }}</span>
+                  </div>
+                  <small>Certificate No. LSI-2026-001 · Verification code VERIFY-8F3A21</small>
+                </div>
+              </section>
+            </aside>
+          </div>
+
+          <div class="form-footer">
+            <p class="muted">Saves the eligibility requirements and the template together.</p>
+            <button class="primary-button" :disabled="busy">{{ busy ? 'Saving…' : 'Save template and eligibility settings' }}</button>
+          </div>
+        </section>
+      </form>
+
+      <section id="sec-versions" class="panel">
+        <div class="section-heading">
+          <div>
+            <h2>Template versions</h2>
+            <p class="muted">Previous versions are kept so issued certificates never change.</p>
+          </div>
+          <span class="count-badge">{{ settingData.certificate_template_versions?.length || 0 }} versions</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Version</th><th>Mode</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr v-for="item in settingData.certificate_template_versions || []" :key="String(item.template_id)">
+                <td class="strong">v{{ item.version }}</td>
+                <td class="cap">{{ item.mode }}</td>
+                <td><span class="pill" :class="Number(item.is_active) ? 'issued' : 'draft'">{{ Number(item.is_active) ? 'Active' : 'Draft' }}</span></td>
+                <td class="row-actions">
+                  <button class="text-button" :disabled="busy" @click="editTemplate(item)">Edit</button>
+                  <button v-if="!Number(item.is_active)" class="text-button" :disabled="busy" @click="activateTemplate(item.template_id)">Create active version from this</button>
+                  <a v-if="item.file_path" class="text-button" :href="apiFileUrl(`/certificate-templates/${item.template_id}/file`)" target="_blank" rel="noopener">Preview file</a>
+                  <button v-if="!Number(item.is_active)" class="text-button danger" :disabled="busy" @click="deleteTemplate(item)">Delete</button>
+                </td>
+              </tr>
+              <tr v-if="!settingData.certificate_template_versions?.length"><td colspan="4" class="empty">No template versions.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
-      <section class="panel">
-        <h2>{{ signatoryId ? 'Edit signatory' : 'Add signatory' }}</h2>
-        <form class="form-grid" @submit.prevent="saveSignatory">
-          <label>System account<select v-model="signatoryForm.user_id" required><option value="" disabled>Select administrator or staff</option><option v-for="account in settingData.signatory_accounts || []" :key="account.id" :value="String(account.id)">{{ account.label }}</option></select></label>
-          <label>Printed name<input v-model.trim="signatoryForm.name" maxlength="150" required></label>
-          <label>Position<input v-model.trim="signatoryForm.position" maxlength="150" required></label>
-          <label>Signature X position (%)<input v-model="signatoryForm.x_position" type="number" min="0" max="100" step="0.1" required></label>
-          <label>Signature Y position (%)<input v-model="signatoryForm.y_position" type="number" min="0" max="100" step="0.1" required></label>
-          <label>Signature PNG (transparent, max 1 MB)<input type="file" accept="image/png,.png" @change="onSignatureFile"></label>
-          <div class="wide">
-            <p class="muted">Or draw a signature on the transparent pad.</p>
+      <section id="sec-signatories" class="panel">
+        <div class="section-heading">
+          <div>
+            <h2>{{ signatoryId ? 'Edit signatory' : 'Add signatory' }}</h2>
+            <p class="muted">People who sign certificates before they are issued.</p>
+          </div>
+        </div>
+
+        <form class="signatory-form" @submit.prevent="saveSignatory">
+          <div class="group">
+            <h3 class="group-title">Account and details</h3>
+            <div class="form-grid cols-3">
+              <label>System account<select v-model="signatoryForm.user_id" required><option value="" disabled>Select administrator or staff</option><option v-for="account in settingData.signatory_accounts || []" :key="account.id" :value="String(account.id)">{{ account.label }}</option></select></label>
+              <label>Printed name<input v-model.trim="signatoryForm.name" maxlength="150" required></label>
+              <label>Position<input v-model.trim="signatoryForm.position" maxlength="150" required></label>
+            </div>
+          </div>
+
+          <div class="group">
+            <h3 class="group-title">Signature</h3>
+            <div class="form-grid cols-3">
+              <label>Signature X position (%)<input v-model="signatoryForm.x_position" type="number" min="0" max="100" step="0.1" required></label>
+              <label>Signature Y position (%)<input v-model="signatoryForm.y_position" type="number" min="0" max="100" step="0.1" required></label>
+              <label>Signature PNG (transparent, max 1 MB)<input type="file" accept="image/png,.png" @change="onSignatureFile"></label>
+            </div>
+            <p class="hint">Or draw a signature on the transparent pad.</p>
             <canvas ref="signatureCanvas" class="signature-pad" width="700" height="180" @pointerdown="startDrawing" @pointermove="draw" @pointerup="stopDrawing" @pointercancel="stopDrawing" @pointerleave="stopDrawing"></canvas>
             <button type="button" class="secondary-button" @click="clearCanvas">Clear signature pad</button>
           </div>
-          <div class="actions wide"><button class="primary-button" :disabled="busy">{{ busy ? 'Saving…' : signatoryId ? 'Save signatory' : 'Add signatory' }}</button><button v-if="signatoryId" type="button" class="secondary-button" @click="resetSignatory">Cancel</button></div>
-        </form>
-        <div class="table-wrap"><table><thead><tr><th>Name</th><th>Position</th><th>Account</th><th>Status</th><th>Position (%)</th><th>Actions</th></tr></thead>
-          <tbody><tr v-for="item in settingData.signatories || []" :key="String(item.signatory_id)"><td>{{ item.name }}</td><td>{{ item.position }}</td><td>{{ item.account_name }}</td><td>{{ Number(item.is_active) ? 'Active' : 'Inactive' }}</td><td>{{ item.x_position }}, {{ item.y_position }}</td><td class="actions"><button class="text-button" @click="editSignatory(item)">Edit</button><button v-if="Number(item.is_active)" class="text-button danger" @click="deactivateSignatory(item)">Deactivate</button></td></tr><tr v-if="!settingData.signatories?.length"><td colspan="6" class="empty">No signatories configured.</td></tr></tbody>
-        </table></div>
-      </section>
 
+          <div class="form-footer">
+            <span></span>
+            <div class="actions">
+              <button v-if="signatoryId" type="button" class="secondary-button" @click="resetSignatory">Cancel</button>
+              <button class="primary-button" :disabled="busy">{{ busy ? 'Saving…' : signatoryId ? 'Save signatory' : 'Add signatory' }}</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Position</th><th>Account</th><th>Status</th><th>Position (%)</th><th>Actions</th></tr></thead>
+            <tbody>
+              <tr v-for="item in settingData.signatories || []" :key="String(item.signatory_id)">
+                <td class="strong">{{ item.name }}</td>
+                <td>{{ item.position }}</td>
+                <td>{{ item.account_name }}</td>
+                <td><span class="pill" :class="Number(item.is_active) ? 'issued' : 'draft'">{{ Number(item.is_active) ? 'Active' : 'Inactive' }}</span></td>
+                <td>{{ item.x_position }}, {{ item.y_position }}</td>
+                <td class="row-actions">
+                  <button class="text-button" @click="editSignatory(item)">Edit</button>
+                  <button v-if="Number(item.is_active)" class="text-button danger" @click="deactivateSignatory(item)">Deactivate</button>
+                </td>
+              </tr>
+              <tr v-if="!settingData.signatories?.length"><td colspan="6" class="empty">No signatories configured.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </template>
 
+    <!-- ===================== TRAINEE ===================== -->
     <template v-else-if="!loading && mode === 'records' && isTrainee">
       <section class="panel">
-        <h2>My certificate eligibility</h2><div class="table-wrap"><table><thead><tr><th>Program / class</th><th>Attendance</th><th>Documents</th><th>Assessments</th><th>Eligibility</th><th>Review status</th></tr></thead>
-          <tbody><tr v-for="item in data.eligibility || []" :key="String(item.eligibility_id)"><td>{{ item.program_name }} / {{ item.class_name }}</td><td>{{ item.attendance_percentage }}%</td><td>{{ item.documents_approved }} / {{ item.documents_required }}</td><td>{{ item.assessments_completed }} / {{ item.assessments_required }}</td><td>{{ Number(item.is_eligible) ? 'Eligible' : 'Requirements incomplete' }}</td><td>{{ item.approval_status }}</td></tr><tr v-if="!data.eligibility?.length"><td colspan="6" class="empty">No eligibility records available.</td></tr></tbody>
-        </table></div>
+        <div class="section-heading">
+          <div>
+            <h2>My certificate eligibility</h2>
+            <p class="muted">Your progress toward each certificate.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Program / class</th><th>Attendance</th><th>Documents</th><th>Assessments</th><th>Eligibility</th><th>Review status</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in data.eligibility || []" :key="String(item.eligibility_id)">
+                <td class="strong">{{ item.program_name }} / {{ item.class_name }}</td>
+                <td>{{ item.attendance_percentage }}%</td>
+                <td>{{ item.documents_approved }} / {{ item.documents_required }}</td>
+                <td>{{ item.assessments_completed }} / {{ item.assessments_required }}</td>
+                <td><span class="pill" :class="Number(item.is_eligible) ? 'issued' : 'pending'">{{ Number(item.is_eligible) ? 'Eligible' : 'Requirements incomplete' }}</span></td>
+                <td><span class="pill" :class="String(item.approval_status || '').toLowerCase()">{{ item.approval_status }}</span></td>
+              </tr>
+              <tr v-if="!data.eligibility?.length"><td colspan="6" class="empty">No eligibility records available.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
-      <section class="panel section"><h2>Issued certificates</h2><div class="table-wrap"><table><thead><tr><th>Certificate number</th><th>Program / class</th><th>Issue date</th><th>Status</th><th>Download</th></tr></thead>
-        <tbody><tr v-for="item in certificates" :key="String(item.certificate_id)"><td>{{ item.certificate_number }}</td><td>{{ item.program_name }} / {{ item.class_name }}</td><td>{{ item.issue_date }}</td><td>{{ item.status }}</td><td><a v-if="item.status === 'issued'" :href="apiFileUrl(`/certificates/${item.certificate_id}/download`)" target="_blank" rel="noopener">Download PDF</a><button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)">Verify</button><span v-if="item.status !== 'issued'">Available after signing</span></td></tr><tr v-if="!certificates.length"><td colspan="5" class="empty">No certificates issued yet.</td></tr></tbody>
-      </table></div></section>
+
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <h2>Issued certificates</h2>
+            <p class="muted">Download your certificate once it has been signed.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Certificate number</th><th>Program / class</th><th>Issue date</th><th>Status</th><th>Download</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in certificates" :key="String(item.certificate_id)">
+                <td class="strong">{{ item.certificate_number }}</td>
+                <td>{{ item.program_name }} / {{ item.class_name }}</td>
+                <td>{{ item.issue_date }}</td>
+                <td><span class="pill" :class="String(item.status || '').toLowerCase()">{{ item.status }}</span></td>
+                <td class="row-actions">
+                  <a v-if="item.status === 'issued'" :href="apiFileUrl(`/certificates/${item.certificate_id}/download`)" target="_blank" rel="noopener">Download PDF</a>
+                  <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)">Verify</button>
+                  <span v-if="item.status !== 'issued'" class="muted">Available after signing</span>
+                </td>
+              </tr>
+              <tr v-if="!certificates.length"><td colspan="5" class="empty">No certificates issued yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </template>
 
+    <!-- ===================== STAFF RECORDS ===================== -->
     <template v-else-if="!loading && mode === 'records' && isStaff">
-      <section class="stats-grid">
-        <article class="stat"><span>Eligible</span><strong>{{ data.certificate_stats?.eligible || 0 }}</strong></article><article class="stat"><span>Awaiting approval</span><strong>{{ data.certificate_stats?.pending || 0 }}</strong></article><article class="stat"><span>Awaiting signatures</span><strong>{{ data.certificate_stats?.signing || 0 }}</strong></article><article class="stat"><span>Issued</span><strong>{{ data.certificate_stats?.issued || 0 }}</strong></article>
+      <section class="stats-grid" aria-label="Certificate figures">
+        <article class="stat"><span>Eligible</span><strong>{{ data.certificate_stats?.eligible || 0 }}</strong></article>
+        <article class="stat"><span>Awaiting approval</span><strong>{{ data.certificate_stats?.pending || 0 }}</strong></article>
+        <article class="stat"><span>Awaiting signatures</span><strong>{{ data.certificate_stats?.signing || 0 }}</strong></article>
+        <article class="stat"><span>Issued</span><strong>{{ data.certificate_stats?.issued || 0 }}</strong></article>
       </section>
+
       <section class="panel">
-        <div class="section-heading"><div><h2>Eligibility and certificate status</h2><p class="muted">Review eligible trainees; approved eligibility queues the certificate for assigned signatories.</p></div><input v-model="filter" class="search" placeholder="Search trainee, program, status"></div>
-        <div class="table-wrap"><table><thead><tr><th>Trainee</th><th>Program / class</th><th>Attendance</th><th>Documents</th><th>Assessments</th><th>Eligibility</th><th>Status</th><th>Certificate</th><th>Actions</th></tr></thead>
-          <tbody><tr v-for="item in filteredCertificates" :key="String(item.eligibility_id)">
-            <td>{{ item.trainee_name }}<small>{{ item.trainee_number }}</small></td><td>{{ item.program_name }} / {{ item.class_name }}</td><td>{{ item.attendance_percentage }}%</td><td>{{ item.documents_approved }} / {{ item.documents_required }}</td><td>{{ item.assessments_completed }} / {{ item.assessments_required }}</td><td>{{ Number(item.is_eligible) ? 'Eligible' : item.ineligibility_reasons || 'Not eligible' }}</td><td>{{ item.status }}</td><td>{{ item.certificate_number || '—' }}<small>{{ item.issue_date || '' }}</small></td>
-            <td class="row-actions">
-              <button v-if="!item.certificate_id && item.is_eligible" class="text-button" @click="recalculate(item)">Recalculate</button>
-              <template v-if="!item.certificate_id && item.is_eligible && item.approval_status === 'pending'"><textarea v-model="reviewForm(item.eligibility_id).reason" placeholder="Reason if rejecting"></textarea><button class="text-button approve" @click="reviewEligibility(item, 'approved')">Approve</button><button class="text-button danger" @click="reviewEligibility(item, 'rejected')">Reject</button></template>
-              <button v-if="!item.certificate_id && item.approval_status === 'approved'" class="text-button" @click="issue(item)">Queue certificate</button>
-              <button v-if="item.status === 'draft' && item.certificate_id" class="text-button" @click="resubmitCertificate(item)">Resubmit for signatures</button>
-              <small v-if="item.signature_rejection_remarks" class="rejection-note">{{ item.signature_rejection_remarks }}</small>
-              <button v-if="item.status === 'issued'" class="text-button danger" @click="revoke(item)">Revoke</button>
-              <a v-if="item.status === 'issued'" :href="apiFileUrl(`/certificates/${item.certificate_id}/download`)" target="_blank" rel="noopener">Download</a>
-              <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)">Verify</button>
-            </td>
-          </tr><tr v-if="!filteredCertificates.length"><td colspan="9" class="empty">No eligibility records match your search.</td></tr></tbody>
-        </table></div>
+        <div class="section-heading">
+          <div>
+            <h2>Eligibility and certificate status</h2>
+            <p class="muted">Review eligible trainees; approved eligibility queues the certificate for assigned signatories.</p>
+          </div>
+          <input v-model="filter" class="search" placeholder="Search trainee, program, status" aria-label="Search eligibility records">
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Trainee</th>
+                <th>Program / class</th>
+                <th>Attendance</th>
+                <th>Documents</th>
+                <th>Assessments</th>
+                <th>Eligibility</th>
+                <th>Status</th>
+                <th>Certificate</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in filteredCertificates" :key="String(item.eligibility_id)">
+                <td><span class="strong">{{ item.trainee_name }}</span><small>{{ item.trainee_number }}</small></td>
+                <td>{{ item.program_name }} / {{ item.class_name }}</td>
+                <td>{{ item.attendance_percentage }}%</td>
+                <td>{{ item.documents_approved }} / {{ item.documents_required }}</td>
+                <td>{{ item.assessments_completed }} / {{ item.assessments_required }}</td>
+                <td>
+                  <span v-if="Number(item.is_eligible)" class="pill issued">Eligible</span>
+                  <span v-else class="pill pending">{{ item.ineligibility_reasons || 'Not eligible' }}</span>
+                </td>
+                <td><span class="pill" :class="String(item.status || '').toLowerCase()">{{ item.status }}</span></td>
+                <td>{{ item.certificate_number || '—' }}<small>{{ item.issue_date || '' }}</small></td>
+                <td class="row-actions">
+                  <button v-if="!item.certificate_id && item.is_eligible" class="text-button" @click="recalculate(item)">Recalculate</button>
+
+                  <template v-if="!item.certificate_id && item.is_eligible && item.approval_status === 'pending'">
+                    <textarea v-model="reviewForm(item.eligibility_id).reason" placeholder="Reason if rejecting"></textarea>
+                    <button class="text-button approve" @click="reviewEligibility(item, 'approved')">Approve</button>
+                    <button class="text-button danger" @click="reviewEligibility(item, 'rejected')">Reject</button>
+                  </template>
+
+                  <button v-if="!item.certificate_id && item.approval_status === 'approved'" class="text-button" @click="issue(item)">Queue certificate</button>
+                  <button v-if="item.status === 'draft' && item.certificate_id" class="text-button" @click="resubmitCertificate(item)">Resubmit for signatures</button>
+                  <small v-if="item.signature_rejection_remarks" class="rejection-note">{{ item.signature_rejection_remarks }}</small>
+
+                  <a v-if="item.status === 'issued'" :href="apiFileUrl(`/certificates/${item.certificate_id}/download`)" target="_blank" rel="noopener">Download</a>
+                  <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)">Verify</button>
+                  <button v-if="item.status === 'issued'" class="text-button danger" @click="revoke(item)">Revoke</button>
+                </td>
+              </tr>
+              <tr v-if="!filteredCertificates.length"><td colspan="9" class="empty">No eligibility records match your search.</td></tr>
+            </tbody>
+          </table>
+        </div>
       </section>
     </template>
+
+    <!-- ===================== VERIFICATION (all modes) ===================== -->
     <section v-if="verifiedRecord" class="panel verification-panel" aria-live="polite">
-      <div class="section-heading"><div><h2>Certificate verification</h2><p class="muted">{{ verifiedRecord.certificate.certificate_number }} · {{ verifiedRecord.certificate.trainee_name }}</p></div><button class="secondary-button" @click="verifiedRecord = null">Close</button></div>
+      <div class="section-heading">
+        <div>
+          <h2>Certificate verification</h2>
+          <p class="muted">{{ verifiedRecord.certificate.certificate_number }} · {{ verifiedRecord.certificate.trainee_name }}</p>
+        </div>
+        <button class="secondary-button" @click="verifiedRecord = null">Close</button>
+      </div>
       <p class="verification-result" :class="{ valid: verifiedRecord.integrity_valid, invalid: !verifiedRecord.integrity_valid }">{{ verifiedRecord.integrity_valid ? 'Valid — stored signature hashes match the certificate data.' : 'Tampered or incomplete — one or more signature hashes do not match, or no signatures are recorded.' }}</p>
-      <p><strong>Status:</strong> {{ verifiedRecord.certificate.status }} · <strong>Issued:</strong> {{ verifiedRecord.certificate.issue_date || '—' }}</p>
-      <div class="table-wrap"><table><thead><tr><th>Signatory</th><th>Position</th><th>Signed at</th><th>Hash</th></tr></thead><tbody><tr v-for="(signature, index) in verifiedRecord.signatories" :key="`${signature.name}-${index}`"><td>{{ signature.name }}</td><td>{{ signature.position }}</td><td>{{ signature.signed_at }}</td><td>{{ signature.hash_valid ? 'Valid' : 'Tampered' }}</td></tr><tr v-if="!verifiedRecord.signatories.length"><td colspan="4" class="empty">No completed signatures found.</td></tr></tbody></table></div>
+      <p class="verify-meta"><strong>Status:</strong> {{ verifiedRecord.certificate.status }} · <strong>Issued:</strong> {{ verifiedRecord.certificate.issue_date || '—' }}</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Signatory</th><th>Position</th><th>Signed at</th><th>Hash</th></tr></thead>
+          <tbody>
+            <tr v-for="(signature, index) in verifiedRecord.signatories" :key="`${signature.name}-${index}`">
+              <td class="strong">{{ signature.name }}</td>
+              <td>{{ signature.position }}</td>
+              <td>{{ signature.signed_at }}</td>
+              <td><span class="pill" :class="signature.hash_valid ? 'issued' : 'revoked'">{{ signature.hash_valid ? 'Valid' : 'Tampered' }}</span></td>
+            </tr>
+            <tr v-if="!verifiedRecord.signatories.length"><td colspan="4" class="empty">No completed signatures found.</td></tr>
+          </tbody>
+        </table>
+      </div>
     </section>
   </div>
 </template>
@@ -607,6 +997,7 @@ onMounted(async () => {
   --line: #e1e8f1;
   --field: #eaf0fb;
   --ok: #2d8a57;
+  --warn: #c98a00;
   --danger: #b4281f;
 
   max-width: 1500px;
@@ -616,7 +1007,7 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Headings ---------- */
+/* ================= Banner and headings ================= */
 .page-heading,
 .section-heading {
   display: flex;
@@ -627,6 +1018,7 @@ onMounted(async () => {
 
 .page-heading {
   position: relative;
+  align-items: center;
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
@@ -692,8 +1084,18 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-/* ---------- Panels ---------- */
+.section-heading .muted {
+  margin: 4px 0 0;
+}
+
+.loading {
+  padding: 28px 0;
+  text-align: center;
+}
+
+/* ================= Panels ================= */
 .panel {
+  position: relative;
   margin-top: 18px;
   padding: 24px;
   border: 1px solid var(--line);
@@ -706,7 +1108,20 @@ onMounted(async () => {
   margin-top: 20px;
 }
 
-/* ---------- Buttons ---------- */
+.settings-form .panel::before,
+#sec-versions::before,
+#sec-signatories::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 24px;
+  width: 64px;
+  height: 4px;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(90deg, var(--blue), var(--sky));
+}
+
+/* ================= Buttons ================= */
 .secondary-button,
 .primary-button,
 .danger-button {
@@ -760,7 +1175,56 @@ onMounted(async () => {
   cursor: not-allowed;
 }
 
-/* ---------- Messages ---------- */
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.danger-button:focus-visible,
+.text-button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+
+.text-button {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--blue);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.text-button:hover:not(:disabled) {
+  background: var(--field);
+  color: var(--navy-deep);
+}
+
+.text-button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.approve {
+  color: var(--ok);
+}
+
+.approve:hover {
+  background: #e3f4ea;
+  color: #1f6b41;
+}
+
+.danger {
+  color: var(--danger);
+}
+
+.text-button.danger:hover {
+  background: #fdeceb;
+  color: var(--danger);
+}
+
+/* ================= Messages ================= */
 .inline-error,
 .inline-success {
   margin: 16px 0 0;
@@ -780,12 +1244,13 @@ onMounted(async () => {
   color: #1f6b41;
 }
 
-/* ---------- Tables ---------- */
+/* ================= Tables ================= */
 .table-wrap {
   overflow: auto;
   margin-top: 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
+  box-shadow: 0 6px 18px -16px rgb(17 44 73 / 50%);
 }
 
 table {
@@ -837,48 +1302,118 @@ td a:hover {
   text-decoration: underline;
 }
 
+td.row-actions a {
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+
+td.row-actions a:hover {
+  background: var(--field);
+  text-decoration: none;
+}
+
 .empty {
   padding: 28px;
   text-align: center;
   color: var(--muted);
 }
 
-.text-button {
-  padding: 4px 8px;
-  border: 0;
-  border-radius: 6px;
-  background: none;
-  color: var(--blue);
-  font: inherit;
-  font-weight: 600;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.text-button:hover {
-  background: var(--field);
+.strong {
   color: var(--navy-deep);
+  font-weight: 600;
 }
 
-.approve {
-  color: var(--ok);
+.cap {
+  text-transform: capitalize;
 }
 
-.approve:hover {
+th.end,
+td.end {
+  text-align: right;
+}
+
+.row-actions {
+  min-width: 190px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.row-actions textarea {
+  width: 170px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.rejection-note {
+  display: block;
+  max-width: 220px;
+  padding: 6px 8px;
+  border-left: 3px solid var(--danger);
+  border-radius: 4px;
+  background: #fdeceb;
+  color: var(--danger);
+  white-space: normal;
+}
+
+.count-badge {
+  padding: 6px 13px;
+  border: 1px solid #cfe1f5;
+  border-radius: 999px;
+  background: #e8f2fc;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* status pills */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px 4px 10px;
+  border-radius: 999px;
+  background: #fbf0d3;
+  color: #8a5d00;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pill.issued,
+.pill.approved {
   background: #e3f4ea;
   color: #1f6b41;
 }
 
-.danger {
-  color: var(--danger);
+.pill.draft {
+  background: #e8edf4;
+  color: #4b5d73;
 }
 
-.text-button.danger:hover {
+.pill.revoked,
+.pill.rejected {
   background: #fdeceb;
   color: var(--danger);
 }
 
-/* ---------- Stat cards ---------- */
+/* ================= Stat cards ================= */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -923,7 +1458,7 @@ td a:hover {
   line-height: 1.1;
 }
 
-/* ---------- Search and row actions ---------- */
+/* ================= Search ================= */
 .search {
   width: 100%;
   max-width: 300px;
@@ -936,42 +1471,79 @@ td a:hover {
   font: inherit;
 }
 
-.row-actions {
-  min-width: 190px;
+/* ================= Jump bar (settings) ================= */
+.jump-nav {
+  position: sticky;
+  top: 0;
+  z-index: 6;
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  align-items: center;
-}
-
-.row-actions textarea {
-  width: 170px;
-  padding: 8px;
+  gap: 4px;
+  overflow-x: auto;
+  margin: 18px 0 0;
+  padding: 5px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--field);
-  color: var(--text);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 92%);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 28px -18px rgb(17 44 73 / 55%);
+  scrollbar-width: none;
+}
+
+.jump-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.jump-nav button {
+  flex: 1 0 auto;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: var(--muted);
   font: inherit;
-  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 
-.rejection-note {
-  display: block;
-  max-width: 220px;
-  padding: 6px 8px;
-  border-left: 3px solid var(--danger);
-  border-radius: 4px;
-  background: #fdeceb;
-  color: var(--danger);
-  white-space: normal;
+.jump-nav button:hover {
+  background: var(--field);
+  color: var(--navy-deep);
 }
 
-/* ---------- Forms ---------- */
+.jump-nav button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 1px;
+}
+
+#sec-eligibility,
+#sec-template,
+#sec-versions,
+#sec-signatories {
+  scroll-margin-top: 76px;
+}
+
+/* ================= Forms ================= */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-top: 18px;
+}
+
+.form-grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.form-grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.form-grid.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .form-grid label,
@@ -993,20 +1565,6 @@ td a:hover {
 .sign-actions input,
 .reject-form textarea,
 .layout-item input,
-.layout-item select,
-.search,
-.row-actions textarea {
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
-}
-
-.form-grid input,
-.form-grid select,
-.form-grid textarea,
-.inline-form input,
-.inline-form select,
-.sign-actions input,
-.reject-form textarea,
-.layout-item input,
 .layout-item select {
   min-width: 0;
   width: 100%;
@@ -1016,11 +1574,17 @@ td a:hover {
   background: var(--field);
   color: var(--text);
   font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.form-grid textarea,
+.reject-form textarea {
+  resize: vertical;
 }
 
 .form-grid input[type='color'] {
-  padding: 3px;
   height: 42px;
+  padding: 3px;
   cursor: pointer;
 }
 
@@ -1066,35 +1630,27 @@ td a:hover {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--field);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.checkbox input {
+.checkbox:hover {
+  border-color: #b6c8de;
+  background: #e3ecf8;
+}
+
+.checkbox:has(input:checked) {
+  border-color: var(--blue);
+  background: #e1edfa;
+}
+
+.form-grid .checkbox input {
+  flex: none;
   width: 18px;
+  min-height: 0;
   height: 18px;
+  padding: 0;
   accent-color: var(--blue);
-}
-
-.layout-item {
-  display: grid;
-  grid-template-columns: 1.6fr repeat(4, minmax(80px, 1fr));
-  gap: 10px;
-  align-items: end;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-left: 3px solid var(--sky);
-  border-radius: 8px;
-  background: #f9fbfe;
-}
-
-.layout-item strong {
-  color: var(--navy-deep);
-}
-
-.layout-item label {
-  display: grid;
-  gap: 4px;
-  color: var(--muted);
-  font-size: 11px;
 }
 
 .actions,
@@ -1112,12 +1668,317 @@ td a:hover {
   margin-top: 16px;
 }
 
-/* ---------- Signature pad, signing, preview ---------- */
+/* grouped blocks */
+.group {
+  margin-top: 26px;
+}
+
+.group:first-child {
+  margin-top: 0;
+}
+
+.group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  color: var(--navy);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.group-title::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--sky);
+  box-shadow: 0 0 0 3px rgb(143 196 245 / 28%);
+}
+
+.group-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+
+.hint {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #f4f8fd;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+/* field position rows */
+.layout-list {
+  display: grid;
+  gap: 10px;
+}
+
+.layout-item {
+  display: grid;
+  grid-template-columns: 1.6fr repeat(4, minmax(80px, 1fr));
+  gap: 10px;
+  align-items: end;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--sky);
+  border-radius: 8px;
+  background: #f9fbfe;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.layout-item:hover {
+  border-color: #cfdcec;
+  box-shadow: 0 8px 20px -16px rgb(17 44 73 / 55%);
+}
+
+.layout-item strong {
+  color: var(--navy-deep);
+}
+
+.layout-item label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ================= Template editor and live preview ================= */
+.template-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.95fr);
+  gap: 28px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.template-preview {
+  position: sticky;
+  top: 80px;
+}
+
+.edit-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 13px 16px;
+  border: 1px solid #cfe1f5;
+  border-left: 4px solid var(--blue);
+  border-radius: 8px;
+  background: #eaf3fc;
+  color: var(--navy-deep);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.edit-banner::before {
+  content: 'i';
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  font-style: italic;
+}
+
+.certificate-live-preview {
+  padding: 18px;
+  border: 1px solid #d4e0ee;
+  border-radius: 14px;
+  background:
+    radial-gradient(rgb(17 44 73 / 7%) 1px, transparent 1px) 0 0 / 14px 14px,
+    #eef3f9;
+}
+
+.certificate-live-preview .section-heading {
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.certificate-live-preview h3 {
+  margin: 0;
+  color: var(--navy-deep);
+  font-size: 17px;
+}
+
+.certificate-live-preview .muted {
+  margin: 4px 0 0;
+}
+
+.certificate-preview-sheet {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1.414 / 1;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #fff;
+  color: #233344;
+  box-shadow: 0 1px 2px rgb(17 44 73 / 18%), 0 18px 36px -14px rgb(17 44 73 / 40%);
+}
+
+.generated-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5%;
+  border: 12px solid transparent;
+  text-align: center;
+}
+
+.generated-preview.border-single {
+  border-color: var(--preview-accent);
+}
+
+.generated-preview.border-double {
+  border: 10px double var(--preview-accent);
+}
+
+.generated-preview.border-none {
+  border-color: transparent;
+}
+
+.generated-preview::before {
+  content: '';
+  position: absolute;
+  inset: 20px;
+  border: 1px solid color-mix(in srgb, var(--preview-accent), transparent 58%);
+  pointer-events: none;
+}
+
+.generated-preview.border-none::before {
+  display: none;
+}
+
+.certificate-preview-logo {
+  position: absolute;
+  top: 8%;
+  left: 8%;
+  width: 12%;
+  height: 16%;
+  object-fit: contain;
+}
+
+.preview-institution {
+  margin: 0 0 3%;
+  color: var(--preview-accent);
+  font-size: clamp(12px, 2.2vw, 22px);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.generated-preview h4 {
+  margin: 0 0 4%;
+  color: var(--preview-accent);
+  font-family: inherit;
+  font-size: clamp(20px, 4vw, 42px);
+}
+
+.preview-body {
+  max-width: 76%;
+  margin: 0;
+  font-size: clamp(12px, 1.7vw, 18px);
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.preview-signature {
+  display: grid;
+  gap: 4px;
+  min-width: 24%;
+  margin-top: 7%;
+  padding-top: 8px;
+  border-top: 1px solid var(--preview-accent);
+  font-size: clamp(11px, 1.5vw, 16px);
+}
+
+.generated-preview > small {
+  position: absolute;
+  right: 6%;
+  bottom: 4%;
+  left: 6%;
+  color: #667789;
+  font-size: clamp(8px, 1vw, 11px);
+}
+
+.certificate-background-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.uploaded-preview-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 12%;
+  background: linear-gradient(135deg, #fff, #edf3f8);
+  color: #667789;
+  text-align: center;
+}
+
+.positioned-preview-field {
+  position: absolute;
+  z-index: 1;
+  width: max-content;
+  max-width: 90%;
+  overflow: hidden;
+  color: #172534;
+  font-weight: 600;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px #fff, 0 0 4px #fff;
+}
+
+/* ================= Save footer ================= */
+.form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin: 28px -24px -24px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 12px 12px;
+  background: rgb(249 251 254 / 95%);
+  backdrop-filter: blur(6px);
+}
+
+.settings-form .form-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  box-shadow: 0 -10px 24px -18px rgb(17 44 73 / 55%);
+}
+
+.form-footer .muted {
+  margin: 0;
+}
+
+/* ================= Signatories ================= */
 .signature-pad {
   display: block;
   max-width: 100%;
   height: auto;
-  margin-bottom: 10px;
+  margin: 4px 0 10px;
   border: 2px dashed #b6c8de;
   border-radius: 10px;
   background:
@@ -1127,38 +1988,104 @@ td a:hover {
   cursor: crosshair;
 }
 
+.signatory-form + .table-wrap {
+  margin-top: 26px;
+}
+
+/* ================= Signing ================= */
+.signing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 22px;
+  align-items: start;
+  margin-top: 20px;
+}
+
 .preview {
   width: 100%;
   height: 650px;
-  margin: 16px 0;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: #f3f6fb;
+  box-shadow: 0 16px 34px -22px rgb(17 44 73 / 60%);
 }
 
-.sign-actions {
-  max-width: 600px;
-  margin: 14px 0;
+.signing-side {
+  position: sticky;
+  top: 16px;
+  display: grid;
+  gap: 16px;
 }
 
-.sign-actions label {
-  flex: 1;
-}
-
-.reject-form {
-  display: flex;
+.side-card {
+  position: relative;
+  display: grid;
   gap: 12px;
-  align-items: end;
-  max-width: 800px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--line);
+  padding: 20px 18px 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 26px -20px rgb(17 44 73 / 55%);
 }
 
-.reject-form label {
-  flex: 1;
+.side-card h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--navy-deep);
+  font-size: 17px;
 }
 
-/* ---------- Verification ---------- */
+.side-card h3::before {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.side-card .muted {
+  margin: 0;
+}
+
+.side-card.sign-actions,
+.side-card.reject-form {
+  flex-direction: column;
+  align-items: stretch;
+  max-width: none;
+  margin: 0;
+}
+
+.side-card.sign-actions {
+  border-top: 3px solid var(--blue);
+}
+
+.side-card.sign-actions h3::before {
+  content: '✓';
+  background: #e1edfa;
+  color: var(--blue);
+}
+
+.side-card.reject-form {
+  border-top: 3px solid var(--danger);
+}
+
+.side-card.reject-form h3::before {
+  content: '↩';
+  background: #fdeceb;
+  color: var(--danger);
+}
+
+.side-card .primary-button,
+.side-card .danger-button {
+  width: 100%;
+}
+
+/* ================= Verification ================= */
 .verification-panel {
   border-left: 4px solid var(--blue);
 }
@@ -1181,7 +2108,27 @@ td a:hover {
   color: var(--danger);
 }
 
-/* ---------- Responsive ---------- */
+.verify-meta {
+  color: var(--muted);
+}
+
+/* ================= Responsive ================= */
+@media (max-width: 1100px) {
+  .template-layout,
+  .signing-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .template-preview,
+  .signing-side {
+    position: static;
+  }
+
+  .form-grid.cols-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 850px) {
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1192,8 +2139,11 @@ td a:hover {
   }
 }
 
-@media (max-width: 560px) {
+@media (max-width: 700px) {
   .form-grid,
+  .form-grid.cols-2,
+  .form-grid.cols-3,
+  .form-grid.cols-4,
   .inline-form {
     grid-template-columns: 1fr;
   }
@@ -1202,6 +2152,26 @@ td a:hover {
     grid-column: auto;
   }
 
+  .form-footer {
+    flex-direction: column;
+    align-items: stretch;
+    margin: 24px -16px -16px;
+    padding: 14px 16px;
+  }
+
+  .form-footer .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-form .panel::before,
+  #sec-versions::before,
+  #sec-signatories::before {
+    left: 16px;
+  }
+}
+
+@media (max-width: 560px) {
   .page-heading,
   .section-heading {
     flex-wrap: wrap;
@@ -1219,12 +2189,6 @@ td a:hover {
     padding: 16px;
   }
 
-  .reject-form,
-  .sign-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
   .preview {
     height: 450px;
   }
@@ -1234,6 +2198,10 @@ td a:hover {
   .primary-button,
   .secondary-button,
   .danger-button,
+  .text-button,
+  .jump-nav button,
+  .checkbox,
+  .layout-item,
   .form-grid input,
   .form-grid select,
   .form-grid textarea {

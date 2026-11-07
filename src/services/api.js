@@ -1,4 +1,10 @@
 import { API_BASE_URL } from '../config'
+import {
+  captureAnalyticsEvent,
+  captureAnonymousAnalyticsEvent,
+  identifyAnalyticsUser,
+  trackApiActivity
+} from './analytics'
 
 let csrfToken = ''
 
@@ -53,6 +59,7 @@ export async function apiRequest(path, options = {}) {
       credentials: 'include'
     })
   } catch {
+    trackApiActivity(urlPath, method, options.body, false)
     const error = new ApiError('The server could not be reached. Check your connection and try again.')
     showErrorToast(error.message)
     throw error
@@ -82,6 +89,7 @@ export async function apiRequest(path, options = {}) {
   if (typeof data.csrf === 'string') csrfToken = data.csrf
 
   if (!response.ok || payload.ok !== true) {
+    trackApiActivity(urlPath, method, options.body, false)
     const error = new ApiError(
       payload.message || `Request failed (${response.status}).`,
       response.status,
@@ -94,6 +102,7 @@ export async function apiRequest(path, options = {}) {
     throw error
   }
 
+  trackApiActivity(urlPath, method, options.body)
   return payload
 }
 
@@ -112,15 +121,27 @@ export function apiFileUrl(path) {
 
 export async function getSession() {
   const response = await apiRequest('/session')
+  identifyAnalyticsUser(response.data.authenticated ? response.data.user : null)
   return response.data
 }
 
 export async function login(username, password) {
-  const response = await apiRequest('/login', {
-    method: 'POST',
-    body: { username, password }
-  })
-  return response.data
+  try {
+    const response = await apiRequest('/login', {
+      method: 'POST',
+      body: { username, password }
+    })
+    identifyAnalyticsUser(response.data.authenticated ? response.data.user : null)
+    if (response.data.user) {
+      captureAnalyticsEvent('user_logged_in', 'authentication', 'authentication')
+    }
+    return response.data
+  } catch (reason) {
+    if (reason instanceof ApiError && reason.status === 401) {
+      captureAnonymousAnalyticsEvent('login_failed', 'authentication', 'authentication')
+    }
+    throw reason
+  }
 }
 
 export async function register(profile) {
@@ -133,7 +154,9 @@ export async function register(profile) {
 
 export async function logout() {
   const response = await apiRequest('/logout', { method: 'POST', body: {} })
+  captureAnalyticsEvent('user_logged_out', 'authentication', 'authentication')
   csrfToken = ''
+  identifyAnalyticsUser(null)
   return response.data
 }
 

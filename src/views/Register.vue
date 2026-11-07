@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import { apiGet, register } from '../services/api'
+import { isAnalyticsConsentGranted, setAnalyticsConsent } from '../services/analytics'
 
 const router = useRouter()
 const firstName = ref('')
@@ -20,6 +21,11 @@ const password = ref('')
 const passwordConfirmation = ref('')
 const loading = ref(false)
 const error = ref('')
+const analyticsConsent = ref(isAnalyticsConsentGranted())
+
+function updateAnalyticsConsent() {
+  setAnalyticsConsent(analyticsConsent.value)
+}
 
 async function submit() {
   error.value = ''
@@ -115,6 +121,11 @@ onMounted(async () => {
         <label for="password-confirmation">Confirm password</label>
         <input id="password-confirmation" v-model="passwordConfirmation" type="password" minlength="10" autocomplete="new-password" required>
 
+        <label class="analytics-consent">
+          <input v-model="analyticsConsent" type="checkbox" @change="updateAnalyticsConsent">
+          <span>Allow privacy-safe usage analytics. You can change this after signing in.</span>
+        </label>
+
         <p v-if="error" class="form-error" role="alert">{{ error }}</p>
 
         <button type="submit" :disabled="loading">
@@ -205,6 +216,24 @@ onMounted(async () => {
   display: grid;
   gap: 8px;
   width: min(100%, 440px);
+}
+
+.analytics-consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 8px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.analytics-consent input {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
 }
 
 .eyebrow { margin: 0; color: var(--muted); }

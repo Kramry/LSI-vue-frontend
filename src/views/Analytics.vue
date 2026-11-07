@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { apiGet, getSession } from '../services/api'
+import { API_BASE_URL } from '../config'
 import { Line, Doughnut, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -140,6 +141,22 @@ interface AnalyticsData {
   }
 }
 
+interface WebsitePeriodSummary {
+  unique_visitors: number
+  page_views: number
+  sessions: number
+  average_session_duration: number
+  returning_visitors: number
+}
+
+interface WebsiteAnalyticsReport {
+  current: WebsitePeriodSummary
+  previous: WebsitePeriodSummary
+  daily: Array<{ date: string; label: string; active_users: number; sessions: number; page_views: number }>
+  top_pages: Array<{ page_path: string; page_views: number }>
+  traffic_sources: Array<{ source: string; page_views: number }>
+}
+
 const today = new Date()
 const localDate = (date: Date) => {
   const offset = date.getTimezoneOffset()
@@ -152,6 +169,9 @@ const role = ref('')
 const data = ref<AnalyticsData | null>(null)
 const loading = ref(false)
 const error = ref('')
+const websiteData = ref<WebsiteAnalyticsReport | null>(null)
+const websiteLoading = ref(false)
+const websiteError = ref('')
 const isFinance = computed(() => ['administrator', 'staff'].includes(role.value))
 const selectedClassName = computed(() => data.value?.class_options.find(item => String(item.class_id) === classId.value)?.class_name || 'All available classes')
 const maxTrendValue = computed(() => Math.max(1, ...(data.value?.trend.map((item) => item.present + item.late + item.absent) ?? [1])))
@@ -211,6 +231,26 @@ const annReadData = computed(() => ({
   datasets: [{ data: [data.value?.announcements?.summary?.read_notifications || 0, data.value?.announcements?.summary?.unread_notifications || 0], backgroundColor: ['#2d8a57', '#5d6f82'] }]
 }))
 
+const websiteVisitorsData = computed(() => ({
+  labels: websiteData.value?.daily.map(item => item.label) || [],
+  datasets: [{ label: 'Unique visitors', data: websiteData.value?.daily.map(item => item.active_users) || [], borderColor: '#265f94', backgroundColor: 'rgba(38, 95, 148, .14)', fill: true, tension: 0.25 }]
+}))
+
+const websitePageViewsData = computed(() => ({
+  labels: websiteData.value?.daily.map(item => item.label) || [],
+  datasets: [{ label: 'Page views', data: websiteData.value?.daily.map(item => item.page_views) || [], borderColor: '#2d8a57', backgroundColor: 'rgba(45, 138, 87, .14)', fill: true, tension: 0.25 }]
+}))
+
+const websiteTopPagesData = computed(() => ({
+  labels: websiteData.value?.top_pages.map(item => item.page_path) || [],
+  datasets: [{ label: 'Page views', data: websiteData.value?.top_pages.map(item => item.page_views) || [], backgroundColor: '#265f94' }]
+}))
+
+const websiteTrafficSourcesData = computed(() => ({
+  labels: websiteData.value?.traffic_sources.map(item => item.source) || [],
+  datasets: [{ data: websiteData.value?.traffic_sources.map(item => item.page_views) || [], backgroundColor: ['#265f94', '#2d8a57', '#d99100', '#6a4c93', '#c4372c', '#20a4a8', '#d46b2c', '#5d6f82'] }]
+}))
+
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -219,8 +259,40 @@ const chartOptions = {
   }
 }
 
+const websiteTopPagesOptions = {
+  ...chartOptions,
+  indexAxis: 'y' as const,
+  scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
+}
+
 function money(value: unknown) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(Number(value || 0))
+}
+
+function formatDuration(value: number) {
+  const seconds = Math.max(0, Math.round(Number(value) || 0))
+  const minutes = Math.floor(seconds / 60)
+  return minutes ? `${minutes}m ${seconds % 60}s` : `${seconds}s`
+}
+
+function websiteChange(metric: keyof WebsitePeriodSummary) {
+  const current = Number(websiteData.value?.current[metric] || 0)
+  const previous = Number(websiteData.value?.previous[metric] || 0)
+  if (previous === 0) return current === 0 ? '0% vs previous period' : 'New vs previous period'
+  const percentage = ((current - previous) / Math.abs(previous)) * 100
+  return `${percentage > 0 ? '+' : ''}${percentage.toFixed(1)}% vs previous period`
+}
+
+function websiteTrendClass(metric: keyof WebsitePeriodSummary) {
+  const current = Number(websiteData.value?.current[metric] || 0)
+  const previous = Number(websiteData.value?.previous[metric] || 0)
+  return current > previous ? 'up' : current < previous ? 'down' : 'flat'
+}
+
+function websiteTrendIcon(metric: keyof WebsitePeriodSummary) {
+  const current = Number(websiteData.value?.current[metric] || 0)
+  const previous = Number(websiteData.value?.previous[metric] || 0)
+  return current > previous ? '↑' : current < previous ? '↓' : '→'
 }
 
 function barWidth(value: number, max: number) {
@@ -332,9 +404,38 @@ function printReport() {
   window.print()
 }
 
+async function loadWebsiteAnalytics() {
+  websiteLoading.value = true
+  websiteError.value = ''
+  try {
+    const query = new URLSearchParams({ start_date: startDate.value, end_date: endDate.value })
+    const response = await fetch(`${API_BASE_URL}/analytics/posthog?${query}`, {
+      headers: { Accept: 'application/json' },
+      credentials: 'include'
+    })
+    const payload = await response.json() as {
+      data?: { website_analytics?: WebsiteAnalyticsReport }
+      message?: string
+    }
+    if (!response.ok) throw new Error(payload.message || `Request failed (${response.status}).`)
+    const report = payload.data?.website_analytics
+    if (!report || !report.current || !report.previous || !Array.isArray(report.daily)) {
+      throw new Error('The website analytics response was incomplete.')
+    }
+    websiteData.value = report
+  } catch (reason) {
+    websiteData.value = null
+    websiteError.value = 'Website analytics are temporarily unavailable.'
+    console.error('Website analytics request failed.', reason)
+  } finally {
+    websiteLoading.value = false
+  }
+}
+
 async function load() {
   loading.value = true
   error.value = ''
+  void loadWebsiteAnalytics()
   try {
     const query = new URLSearchParams({ start_date: startDate.value, end_date: endDate.value })
     if (classId.value) query.set('class_id', classId.value)
@@ -826,6 +927,74 @@ onMounted(async () => {
         </section>
       </section>
     </template>
+
+    <section class="panel section" aria-labelledby="website-behavior-heading">
+      <header class="website-heading">
+        <div class="finance-heading">
+          <p class="eyebrow dark">WEBSITE ANALYTICS / POSTHOG</p>
+          <h2 id="website-behavior-heading">Website analytics</h2>
+          <p class="muted">Website behavior is provided by PostHog. Training, compliance, and financial metrics remain sourced from SmartTrack records.</p>
+        </div>
+        <a class="primary-button posthog-link" href="https://us.posthog.com/" target="_blank" rel="noopener noreferrer">Open PostHog</a>
+      </header>
+
+      <p v-if="websiteLoading" class="muted website-status" role="status" aria-live="polite">Loading website analytics…</p>
+      <p v-else-if="websiteError" class="website-error" role="status" aria-live="polite">{{ websiteError }}</p>
+      <div v-else-if="websiteData">
+        <p class="muted website-period">Showing {{ startDate }} through {{ endDate }}. Comparisons use the preceding period of equal length.</p>
+        <section class="kpi-grid website-kpis" aria-label="Website analytics summary">
+          <article class="kpi website-kpi">
+            <span>Unique Visitors</span>
+            <strong>{{ websiteData.current.unique_visitors.toLocaleString() }}</strong>
+            <small :class="['website-change', websiteTrendClass('unique_visitors')]"><span>{{ websiteTrendIcon('unique_visitors') }}</span> {{ websiteChange('unique_visitors') }} · Previous {{ websiteData.previous.unique_visitors.toLocaleString() }}</small>
+          </article>
+          <article class="kpi website-kpi">
+            <span>Page Views</span>
+            <strong>{{ websiteData.current.page_views.toLocaleString() }}</strong>
+            <small :class="['website-change', websiteTrendClass('page_views')]"><span>{{ websiteTrendIcon('page_views') }}</span> {{ websiteChange('page_views') }} · Previous {{ websiteData.previous.page_views.toLocaleString() }}</small>
+          </article>
+          <article class="kpi website-kpi">
+            <span>Sessions</span>
+            <strong>{{ websiteData.current.sessions.toLocaleString() }}</strong>
+            <small :class="['website-change', websiteTrendClass('sessions')]"><span>{{ websiteTrendIcon('sessions') }}</span> {{ websiteChange('sessions') }} · Previous {{ websiteData.previous.sessions.toLocaleString() }}</small>
+          </article>
+          <article class="kpi website-kpi">
+            <span>Average Session Duration</span>
+            <strong>{{ formatDuration(websiteData.current.average_session_duration) }}</strong>
+            <small :class="['website-change', websiteTrendClass('average_session_duration')]"><span>{{ websiteTrendIcon('average_session_duration') }}</span> {{ websiteChange('average_session_duration') }} · Previous {{ formatDuration(websiteData.previous.average_session_duration) }}</small>
+          </article>
+          <article class="kpi website-kpi">
+            <span>Returning Visitors</span>
+            <strong>{{ websiteData.current.returning_visitors.toLocaleString() }}</strong>
+            <small :class="['website-change', websiteTrendClass('returning_visitors')]"><span>{{ websiteTrendIcon('returning_visitors') }}</span> {{ websiteChange('returning_visitors') }} · Previous {{ websiteData.previous.returning_visitors.toLocaleString() }}</small>
+          </article>
+        </section>
+
+        <section class="split website-charts" aria-label="Website traffic charts">
+          <article class="panel">
+            <h2>Visitors Over Time</h2>
+            <p class="muted">Daily unique visitor counts.</p>
+            <div class="website-chart"><Line :data="websiteVisitorsData" :options="chartOptions" /></div>
+          </article>
+          <article class="panel">
+            <h2>Page Views Over Time</h2>
+            <p class="muted">Daily page view counts.</p>
+            <div class="website-chart"><Line :data="websitePageViewsData" :options="chartOptions" /></div>
+          </article>
+          <article class="panel">
+            <h2>Top Pages</h2>
+            <div v-if="websiteData.top_pages.length" class="website-chart"><Bar :data="websiteTopPagesData" :options="websiteTopPagesOptions" /></div>
+            <p v-else class="empty">No page-view data for this period.</p>
+          </article>
+          <article class="panel">
+            <h2>Traffic Sources</h2>
+            <div v-if="websiteData.traffic_sources.length" class="website-chart"><Doughnut :data="websiteTrafficSourcesData" :options="{ responsive: true, maintainAspectRatio: false }" /></div>
+            <p v-else class="empty">Traffic sources are not available for this period.</p>
+          </article>
+        </section>
+      </div>
+    </section>
+    <footer class="website-footer muted">Website analytics are provided by PostHog. Training, compliance, and financial metrics are sourced from SmartTrack records.</footer>
   </div>
 </template>
 
@@ -1432,6 +1601,82 @@ td.strong {
   color: var(--muted);
 }
 
+.posthog-link {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  align-self: flex-start;
+  text-decoration: none;
+}
+
+.website-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.website-kpis {
+  margin: 18px 0;
+}
+
+.website-kpi {
+  min-width: 0;
+}
+
+.website-kpi strong {
+  display: block;
+}
+
+.website-change {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.website-change.up {
+  color: var(--ok);
+}
+
+.website-change.down {
+  color: var(--danger);
+}
+
+.website-change span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.website-period,
+.website-status {
+  margin: 12px 0;
+}
+
+.website-error {
+  margin: 12px 0 0;
+  border: 1px solid #f0c7c7;
+  border-radius: 8px;
+  padding: 14px 16px;
+  color: var(--danger);
+  background: #fff7f7;
+}
+
+.website-charts {
+  margin-top: 18px;
+}
+
+.website-chart {
+  position: relative;
+  height: 260px;
+  margin-top: 12px;
+}
+
+.website-footer {
+  margin: 18px 0 0;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 900px) {
   .split {
@@ -1444,6 +1689,10 @@ td.strong {
 
   .filters button {
     grid-column: span 2;
+  }
+
+  .website-heading {
+    flex-direction: column;
   }
 
   .page-heading {
