@@ -416,7 +416,9 @@ async function loadWebsiteAnalytics() {
     websiteData.value = report
   } catch (reason) {
     websiteData.value = null
-    websiteError.value = 'Website analytics are temporarily unavailable.'
+    websiteError.value = reason instanceof Error
+      ? reason.message
+      : 'Website analytics are temporarily unavailable.'
     console.error('Website analytics request failed.', reason)
   } finally {
     websiteLoading.value = false
