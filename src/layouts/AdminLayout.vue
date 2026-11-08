@@ -300,6 +300,15 @@ nav a {
   transition: color 0.2s ease, transform 0.3s var(--ease);
 }
 
+nav a,
+.sign-out-compact,
+.sign-out {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* staggered entrance: works for short and long (admin) menus */
 nav a:nth-child(1)  { animation-delay: 0.30s; }
 nav a:nth-child(2)  { animation-delay: 0.35s; }
