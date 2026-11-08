@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { apiGet, getSession } from '../services/api'
+import { apiGet, apiPost, getSession } from '../services/api'
 import { Line, Doughnut, Bar } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -140,20 +140,14 @@ interface AnalyticsData {
   }
 }
 
-interface WebsitePeriodSummary {
-  unique_visitors: number
-  page_views: number
-  sessions: number
-  average_session_duration: number
-  returning_visitors: number
-}
-
-interface WebsiteAnalyticsReport {
-  current: WebsitePeriodSummary
-  previous: WebsitePeriodSummary
-  daily: Array<{ date: string; label: string; active_users: number; sessions: number; page_views: number }>
-  top_pages: Array<{ page_path: string; page_views: number }>
-  traffic_sources: Array<{ source: string; page_views: number }>
+interface AiInsights {
+  overview: string
+  key_observations: string[]
+  positive_trends: string[]
+  concerns: string[]
+  recommendations: Array<{ priority: string; action: string; reason: string }>
+  data_limitations: string[]
+  generated_at?: string
 }
 
 const today = new Date()
@@ -168,9 +162,9 @@ const role = ref('')
 const data = ref<AnalyticsData | null>(null)
 const loading = ref(false)
 const error = ref('')
-const websiteData = ref<WebsiteAnalyticsReport | null>(null)
-const websiteLoading = ref(false)
-const websiteError = ref('')
+const aiInsights = ref<AiInsights | null>(null)
+const aiLoading = ref(false)
+const aiError = ref('')
 const isFinance = computed(() => ['administrator', 'staff'].includes(role.value))
 const selectedClassName = computed(() => data.value?.class_options.find(item => String(item.class_id) === classId.value)?.class_name || 'All available classes')
 const maxTrendValue = computed(() => Math.max(1, ...(data.value?.trend.map((item) => item.present + item.late + item.absent) ?? [1])))
@@ -230,26 +224,6 @@ const annReadData = computed(() => ({
   datasets: [{ data: [data.value?.announcements?.summary?.read_notifications || 0, data.value?.announcements?.summary?.unread_notifications || 0], backgroundColor: ['#2d8a57', '#5d6f82'] }]
 }))
 
-const websiteVisitorsData = computed(() => ({
-  labels: websiteData.value?.daily.map(item => item.label) || [],
-  datasets: [{ label: 'Unique visitors', data: websiteData.value?.daily.map(item => item.active_users) || [], borderColor: '#265f94', backgroundColor: 'rgba(38, 95, 148, .14)', fill: true, tension: 0.25 }]
-}))
-
-const websitePageViewsData = computed(() => ({
-  labels: websiteData.value?.daily.map(item => item.label) || [],
-  datasets: [{ label: 'Page views', data: websiteData.value?.daily.map(item => item.page_views) || [], borderColor: '#2d8a57', backgroundColor: 'rgba(45, 138, 87, .14)', fill: true, tension: 0.25 }]
-}))
-
-const websiteTopPagesData = computed(() => ({
-  labels: websiteData.value?.top_pages.map(item => item.page_path) || [],
-  datasets: [{ label: 'Page views', data: websiteData.value?.top_pages.map(item => item.page_views) || [], backgroundColor: '#265f94' }]
-}))
-
-const websiteTrafficSourcesData = computed(() => ({
-  labels: websiteData.value?.traffic_sources.map(item => item.source) || [],
-  datasets: [{ data: websiteData.value?.traffic_sources.map(item => item.page_views) || [], backgroundColor: ['#265f94', '#2d8a57', '#d99100', '#6a4c93', '#c4372c', '#20a4a8', '#d46b2c', '#5d6f82'] }]
-}))
-
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
@@ -258,40 +232,8 @@ const chartOptions = {
   }
 }
 
-const websiteTopPagesOptions = {
-  ...chartOptions,
-  indexAxis: 'y' as const,
-  scales: { x: { beginAtZero: true, ticks: { precision: 0 } } }
-}
-
 function money(value: unknown) {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'PHP' }).format(Number(value || 0))
-}
-
-function formatDuration(value: number) {
-  const seconds = Math.max(0, Math.round(Number(value) || 0))
-  const minutes = Math.floor(seconds / 60)
-  return minutes ? `${minutes}m ${seconds % 60}s` : `${seconds}s`
-}
-
-function websiteChange(metric: keyof WebsitePeriodSummary) {
-  const current = Number(websiteData.value?.current[metric] || 0)
-  const previous = Number(websiteData.value?.previous[metric] || 0)
-  if (previous === 0) return current === 0 ? '0% vs previous period' : 'New vs previous period'
-  const percentage = ((current - previous) / Math.abs(previous)) * 100
-  return `${percentage > 0 ? '+' : ''}${percentage.toFixed(1)}% vs previous period`
-}
-
-function websiteTrendClass(metric: keyof WebsitePeriodSummary) {
-  const current = Number(websiteData.value?.current[metric] || 0)
-  const previous = Number(websiteData.value?.previous[metric] || 0)
-  return current > previous ? 'up' : current < previous ? 'down' : 'flat'
-}
-
-function websiteTrendIcon(metric: keyof WebsitePeriodSummary) {
-  const current = Number(websiteData.value?.current[metric] || 0)
-  const previous = Number(websiteData.value?.previous[metric] || 0)
-  return current > previous ? '↑' : current < previous ? '↓' : '→'
 }
 
 function barWidth(value: number, max: number) {
@@ -403,37 +345,46 @@ function printReport() {
   window.print()
 }
 
-async function loadWebsiteAnalytics() {
-  websiteLoading.value = true
-  websiteError.value = ''
+async function loadAiInsights() {
+  aiError.value = ''
   try {
     const query = new URLSearchParams({ start_date: startDate.value, end_date: endDate.value })
-    const payload = await apiGet<{ website_analytics?: WebsiteAnalyticsReport }>(`/analytics/posthog?${query}`)
-    const report = payload.data.website_analytics
-    if (!report || !report.current || !report.previous || !Array.isArray(report.daily)) {
-      throw new Error('The website analytics response was incomplete.')
-    }
-    websiteData.value = report
+    if (classId.value) query.set('class_id', classId.value)
+    const payload = await apiGet<{ insights?: AiInsights }>(`/analytics/ai-insights?${query}`)
+    aiInsights.value = payload.data.insights || null
   } catch (reason) {
-    websiteData.value = null
-    websiteError.value = reason instanceof Error
+    aiInsights.value = null
+    aiError.value = reason instanceof Error
       ? reason.message
-      : 'Website analytics are temporarily unavailable.'
-    console.error('Website analytics request failed.', reason)
+      : 'Cached AI insights could not be loaded.'
+  }
+}
+
+async function generateAiInsights() {
+  aiLoading.value = true
+  aiError.value = ''
+  try {
+    const query = new URLSearchParams({ start_date: startDate.value, end_date: endDate.value })
+    if (classId.value) query.set('class_id', classId.value)
+    const payload = await apiPost<{ insights?: AiInsights }>(`/analytics/ai-insights/generate?${query}`, {})
+    if (!payload.data.insights) throw new Error('Gemini returned no insights.')
+    aiInsights.value = payload.data.insights
+  } catch (reason) {
+    aiError.value = reason instanceof Error ? reason.message : 'Gemini insights could not be generated.'
   } finally {
-    websiteLoading.value = false
+    aiLoading.value = false
   }
 }
 
 async function load() {
   loading.value = true
   error.value = ''
-  void loadWebsiteAnalytics()
   try {
     const query = new URLSearchParams({ start_date: startDate.value, end_date: endDate.value })
     if (classId.value) query.set('class_id', classId.value)
     const response = await apiGet<AnalyticsData>(`/analytics?${query}`)
     data.value = response.data
+    await loadAiInsights()
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to load analytics.'
   } finally {
@@ -921,73 +872,30 @@ onMounted(async () => {
       </section>
     </template>
 
-    <section class="panel section" aria-labelledby="website-behavior-heading">
-      <header class="website-heading">
-        <div class="finance-heading">
-          <p class="eyebrow dark">WEBSITE ANALYTICS / POSTHOG</p>
-          <h2 id="website-behavior-heading">Website analytics</h2>
-          <p class="muted">Website behavior is provided by PostHog. Training, compliance, and financial metrics remain sourced from SmartTrack records.</p>
+    <section class="panel section ai-insights-panel" aria-labelledby="gemini-insights-heading">
+      <header class="insights-heading">
+        <div>
+          <p class="eyebrow dark">AI / GEMINI</p>
+          <h2 id="gemini-insights-heading">Smart analytics insights</h2>
+          <p class="muted">Gemini interprets MySQL-calculated statistics. No trainee names, payment references, or credentials are sent.</p>
         </div>
-        <a class="primary-button posthog-link" href="https://us.posthog.com/" target="_blank" rel="noopener noreferrer">Open PostHog</a>
+        <button class="primary-button" type="button" :disabled="aiLoading" @click="generateAiInsights">
+          {{ aiLoading ? 'Generating…' : 'Generate insights' }}
+        </button>
       </header>
 
-      <p v-if="websiteLoading" class="muted website-status" role="status" aria-live="polite">Loading website analytics…</p>
-      <p v-else-if="websiteError" class="website-error" role="status" aria-live="polite">{{ websiteError }}</p>
-      <div v-else-if="websiteData">
-        <p class="muted website-period">Showing {{ startDate }} through {{ endDate }}. Comparisons use the preceding period of equal length.</p>
-        <section class="kpi-grid website-kpis" aria-label="Website analytics summary">
-          <article class="kpi website-kpi">
-            <span>Unique Visitors</span>
-            <strong>{{ websiteData.current.unique_visitors.toLocaleString() }}</strong>
-            <small :class="['website-change', websiteTrendClass('unique_visitors')]"><span>{{ websiteTrendIcon('unique_visitors') }}</span> {{ websiteChange('unique_visitors') }} · Previous {{ websiteData.previous.unique_visitors.toLocaleString() }}</small>
-          </article>
-          <article class="kpi website-kpi">
-            <span>Page Views</span>
-            <strong>{{ websiteData.current.page_views.toLocaleString() }}</strong>
-            <small :class="['website-change', websiteTrendClass('page_views')]"><span>{{ websiteTrendIcon('page_views') }}</span> {{ websiteChange('page_views') }} · Previous {{ websiteData.previous.page_views.toLocaleString() }}</small>
-          </article>
-          <article class="kpi website-kpi">
-            <span>Sessions</span>
-            <strong>{{ websiteData.current.sessions.toLocaleString() }}</strong>
-            <small :class="['website-change', websiteTrendClass('sessions')]"><span>{{ websiteTrendIcon('sessions') }}</span> {{ websiteChange('sessions') }} · Previous {{ websiteData.previous.sessions.toLocaleString() }}</small>
-          </article>
-          <article class="kpi website-kpi">
-            <span>Average Session Duration</span>
-            <strong>{{ formatDuration(websiteData.current.average_session_duration) }}</strong>
-            <small :class="['website-change', websiteTrendClass('average_session_duration')]"><span>{{ websiteTrendIcon('average_session_duration') }}</span> {{ websiteChange('average_session_duration') }} · Previous {{ formatDuration(websiteData.previous.average_session_duration) }}</small>
-          </article>
-          <article class="kpi website-kpi">
-            <span>Returning Visitors</span>
-            <strong>{{ websiteData.current.returning_visitors.toLocaleString() }}</strong>
-            <small :class="['website-change', websiteTrendClass('returning_visitors')]"><span>{{ websiteTrendIcon('returning_visitors') }}</span> {{ websiteChange('returning_visitors') }} · Previous {{ websiteData.previous.returning_visitors.toLocaleString() }}</small>
-          </article>
-        </section>
-
-        <section class="split website-charts" aria-label="Website traffic charts">
-          <article class="panel">
-            <h2>Visitors Over Time</h2>
-            <p class="muted">Daily unique visitor counts.</p>
-            <div class="website-chart"><Line :data="websiteVisitorsData" :options="chartOptions" /></div>
-          </article>
-          <article class="panel">
-            <h2>Page Views Over Time</h2>
-            <p class="muted">Daily page view counts.</p>
-            <div class="website-chart"><Line :data="websitePageViewsData" :options="chartOptions" /></div>
-          </article>
-          <article class="panel">
-            <h2>Top Pages</h2>
-            <div v-if="websiteData.top_pages.length" class="website-chart"><Bar :data="websiteTopPagesData" :options="websiteTopPagesOptions" /></div>
-            <p v-else class="empty">No page-view data for this period.</p>
-          </article>
-          <article class="panel">
-            <h2>Traffic Sources</h2>
-            <div v-if="websiteData.traffic_sources.length" class="website-chart"><Doughnut :data="websiteTrafficSourcesData" :options="{ responsive: true, maintainAspectRatio: false }" /></div>
-            <p v-else class="empty">Traffic sources are not available for this period.</p>
-          </article>
-        </section>
+      <p v-if="aiLoading" class="insights-status" role="status">Gemini is analyzing the current analytics summary…</p>
+      <p v-else-if="aiError" class="insights-error" role="alert">{{ aiError }}</p>
+      <div v-else-if="aiInsights" class="insights-grid">
+        <article><h3>Overview</h3><p>{{ aiInsights.overview }}</p><small v-if="aiInsights.generated_at">Generated {{ aiInsights.generated_at }}</small></article>
+        <article><h3>Key observations</h3><ul><li v-for="item in aiInsights.key_observations" :key="item">{{ item }}</li></ul></article>
+        <article><h3>Positive trends</h3><ul><li v-for="item in aiInsights.positive_trends" :key="item">{{ item }}</li></ul></article>
+        <article><h3>Concerns</h3><ul><li v-for="item in aiInsights.concerns" :key="item">{{ item }}</li></ul></article>
+        <article class="recommendations"><h3>Recommendations</h3><ol><li v-for="(item, index) in aiInsights.recommendations" :key="index"><strong>{{ item.priority }} priority:</strong> {{ item.action }} <span>{{ item.reason }}</span></li></ol></article>
+        <article><h3>Data limitations</h3><ul><li v-for="item in aiInsights.data_limitations" :key="item">{{ item }}</li></ul></article>
       </div>
+      <p v-else class="insights-status">Generate insights to identify trends and recommendations from this report.</p>
     </section>
-    <footer class="website-footer muted">Website analytics are provided by PostHog. Training, compliance, and financial metrics are sourced from SmartTrack records.</footer>
   </div>
 </template>
 
@@ -1594,60 +1502,18 @@ td.strong {
   color: var(--muted);
 }
 
-.posthog-link {
-  display: inline-flex;
-  align-items: center;
-  flex: 0 0 auto;
-  align-self: flex-start;
-  text-decoration: none;
-}
-
-.website-heading {
+.insights-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
 }
 
-.website-kpis {
-  margin: 18px 0;
-}
-
-.website-kpi {
-  min-width: 0;
-}
-
-.website-kpi strong {
-  display: block;
-}
-
-.website-change {
-  display: block;
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.website-change.up {
-  color: var(--ok);
-}
-
-.website-change.down {
-  color: var(--danger);
-}
-
-.website-change span {
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.website-period,
-.website-status {
+.insights-status {
   margin: 12px 0;
 }
 
-.website-error {
+.insights-error {
   margin: 12px 0 0;
   border: 1px solid #f0c7c7;
   border-radius: 8px;
@@ -1656,18 +1522,42 @@ td.strong {
   background: #fff7f7;
 }
 
-.website-charts {
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 18px;
+  gap: 14px;
 }
 
-.website-chart {
-  position: relative;
-  height: 260px;
-  margin-top: 12px;
+.insights-grid article {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  background: var(--surface-subtle, #fff);
 }
 
-.website-footer {
-  margin: 18px 0 0;
+.insights-grid h3 {
+  margin: 0 0 8px;
+}
+
+.insights-grid ul,
+.insights-grid ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.insights-grid li + li {
+  margin-top: 8px;
+}
+
+.insights-grid li span {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.insights-grid .recommendations {
+  grid-column: 1 / -1;
 }
 
 /* ---------- Responsive ---------- */
@@ -1684,8 +1574,12 @@ td.strong {
     grid-column: span 2;
   }
 
-  .website-heading {
+  .insights-heading {
     flex-direction: column;
+  }
+
+  .insights-grid {
+    grid-template-columns: 1fr;
   }
 
   .page-heading {

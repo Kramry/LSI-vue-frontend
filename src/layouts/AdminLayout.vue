@@ -2,16 +2,10 @@
 import { onMounted, ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { getSession, logout } from '../services/api'
-import { isAnalyticsConsentGranted, setAnalyticsConsent } from '../services/analytics'
 
 const router = useRouter()
 const user = ref(null)
 const signingOut = ref(false)
-const analyticsConsent = ref(isAnalyticsConsentGranted())
-
-function updateAnalyticsConsent() {
-  setAnalyticsConsent(analyticsConsent.value)
-}
 
 const links = [
   { label: 'Dashboard', to: '/dashboard', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
@@ -83,10 +77,6 @@ onMounted(async () => {
       </nav>
 
       <div class="side-bottom">
-        <label class="analytics-preference">
-          <input v-model="analyticsConsent" type="checkbox" @change="updateAnalyticsConsent">
-          <span>Share usage analytics</span>
-        </label>
         <button class="sign-out" :disabled="signingOut" @click="signOut">
           {{ signingOut ? 'Signing out...' : 'Sign out' }}
         </button>
@@ -387,30 +377,6 @@ nav a:focus-visible,
   animation: fade-in 0.8s ease 0.9s both;
 }
 
-.analytics-preference {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 4px;
-  color: #c3d4e6;
-  font-size: 12px;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.analytics-preference:hover {
-  color: #fff;
-}
-
-.analytics-preference input {
-  flex: none;
-  width: 15px;
-  height: 15px;
-  margin: 0;
-  accent-color: var(--sky);
-  cursor: pointer;
-}
-
 .sign-out {
   position: relative;
   padding: 11px 14px;
@@ -686,7 +652,6 @@ nav a:focus-visible,
   .account,
   nav a,
   nav a::after,
-  .analytics-preference,
   .sign-out {
     transition: none;
   }

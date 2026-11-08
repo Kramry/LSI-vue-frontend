@@ -2,7 +2,6 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getSession, login } from '../services/api'
-import { isAnalyticsConsentGranted, setAnalyticsConsent } from '../services/analytics'
 
 const route = useRoute()
 const router = useRouter()
@@ -10,11 +9,6 @@ const username = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
-const analyticsConsent = ref(isAnalyticsConsentGranted())
-
-function updateAnalyticsConsent() {
-  setAnalyticsConsent(analyticsConsent.value)
-}
 
 function safeRedirect(value: unknown) {
   return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
@@ -79,11 +73,6 @@ onMounted(async () => {
 
         <label for="password">Password</label>
         <input id="password" v-model="password" type="password" autocomplete="current-password" required>
-
-        <label class="analytics-consent">
-          <input v-model="analyticsConsent" type="checkbox" @change="updateAnalyticsConsent">
-          <span>Allow privacy-safe usage analytics. You can change this after signing in.</span>
-        </label>
 
         <p v-if="error" class="form-error" role="alert">{{ error }}</p>
 
@@ -374,28 +363,6 @@ input:-webkit-autofill {
   -webkit-text-fill-color: var(--text);
 }
 
-.analytics-consent {
-  display: flex;
-  align-items: flex-start;
-  gap: 9px;
-  margin: 8px 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.5;
-  cursor: pointer;
-}
-
-.analytics-consent input {
-  flex: none;
-  width: 16px;
-  height: 16px;
-  margin: 1px 0 0;
-  padding: 0;
-  accent-color: var(--blue);
-  box-shadow: none;
-  transform: none;
-}
 
 /* ================= Sign-in button ================= */
 button {
