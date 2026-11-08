@@ -445,6 +445,7 @@ nav a:focus-visible,
 /* ================= Main ================= */
 .main-content {
   min-width: 0;
+  width: 100%;
   padding: 30px;
 }
 
@@ -638,7 +639,9 @@ nav a:focus-visible,
   }
 
   .main-content {
-    padding: 18px;
+    width: 100%;
+    min-width: 0;
+    padding: clamp(0.75rem, 4vw, 1.125rem);
   }
 }
 

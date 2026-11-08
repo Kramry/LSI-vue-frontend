@@ -32,8 +32,27 @@ html,
 body,
 #app {
   margin: 0;
-  min-width: 320px;
   min-height: 100%;
+}
+
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  min-height: 44px;
 }
 
 body {

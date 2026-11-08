@@ -167,6 +167,8 @@ onMounted(() => {
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   display: grid;
+  width: 100%;
+  min-width: 0;
   gap: 20px;
   max-width: 1200px;
   margin: 0 auto;
@@ -723,6 +725,10 @@ button:disabled::after {
 
 /* ================= Responsive ================= */
 @media (max-width: 760px) {
+  .profile-page {
+    gap: clamp(0.875rem, 4vw, 1.25rem);
+  }
+
   .profile-grid {
     grid-template-columns: 1fr;
   }
@@ -736,12 +742,24 @@ button:disabled::after {
     padding: 22px 20px;
   }
 
+  .page-header h1 {
+    font-size: clamp(1.5rem, 8vw, 1.875rem);
+  }
+
   .page-header::after {
     display: none;
   }
 
   .panel {
     padding: 18px;
+  }
+
+  .form-grid,
+  .panel,
+  label,
+  input,
+  button {
+    min-width: 0;
   }
 
   .qr-image {
