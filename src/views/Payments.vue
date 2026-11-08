@@ -386,6 +386,8 @@ onMounted(async () => {
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   max-width: 1500px;
   margin: auto;
@@ -394,7 +396,7 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Banner ---------- */
+/* ================= Banner ================= */
 .page-heading {
   position: relative;
   display: flex;
@@ -404,8 +406,9 @@ onMounted(async () => {
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
+  animation: drop-in 0.6s var(--ease) both;
 }
 
 .page-heading::before {
@@ -416,8 +419,31 @@ onMounted(async () => {
   pointer-events: none;
 }
 
+/* two coins drift slowly upward behind the heading */
+.page-heading::after {
+  content: '₱';
+  position: absolute;
+  right: 12%;
+  bottom: -40px;
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border: 2px solid rgb(143 196 245 / 45%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgb(143 196 245 / 35%), rgb(143 196 245 / 8%));
+  color: rgb(255 255 255 / 55%);
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 34px;
+  font-weight: 600;
+  box-shadow: -90px 30px 0 -22px rgb(143 196 245 / 16%);
+  animation: coin-rise 9s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .page-heading > * {
   position: relative;
+  z-index: 1;
 }
 
 .page-heading h1 {
@@ -442,6 +468,7 @@ onMounted(async () => {
 
 .page-heading .secondary-button:hover:not(:disabled) {
   background: rgb(255 255 255 / 22%);
+  transform: translateY(-2px);
 }
 
 .eyebrow {
@@ -457,7 +484,13 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-/* ---------- Panels ---------- */
+.loading {
+  padding: 24px 0;
+  text-align: center;
+  animation: breathe 1.4s ease-in-out infinite;
+}
+
+/* ================= Panels ================= */
 .panel,
 .kpi {
   padding: 22px;
@@ -469,7 +502,18 @@ onMounted(async () => {
 .panel {
   margin-top: 18px;
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+  animation: rise 0.6s var(--ease) both;
+  transition: box-shadow 0.3s ease;
 }
+
+.panel:hover {
+  box-shadow: 0 16px 34px -20px rgb(17 44 73 / 50%);
+}
+
+/* panels that follow each other arrive one after another */
+.panel:nth-of-type(2) { animation-delay: 0.08s; }
+.panel:nth-of-type(3) { animation-delay: 0.16s; }
+.panel:nth-of-type(n + 4) { animation-delay: 0.24s; }
 
 .section {
   margin-top: 18px;
@@ -499,7 +543,16 @@ onMounted(async () => {
   margin-top: 0;
 }
 
-/* ---------- Tabs ---------- */
+.content-grid > .panel:first-child {
+  animation-name: slide-left;
+}
+
+.content-grid > .panel:last-child {
+  animation-name: slide-right;
+  animation-delay: 0.1s;
+}
+
+/* ================= Tabs ================= */
 .tabs {
   display: flex;
   gap: 4px;
@@ -509,9 +562,16 @@ onMounted(async () => {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
+  scrollbar-width: none;
+  animation: drop-in 0.55s var(--ease) 0.1s both;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tabs button {
+  position: relative;
   padding: 10px 18px;
   border: 0;
   border-radius: 9px;
@@ -521,23 +581,31 @@ onMounted(async () => {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
 }
 
 .tabs button:hover:not(.active) {
   background: var(--field);
   color: var(--navy-deep);
+  transform: translateY(-1px);
 }
 
 .tabs button.active {
   background: var(--blue);
   color: #fff;
-  box-shadow: 0 6px 14px -8px rgb(38 95 148 / 80%);
+  box-shadow: 0 8px 16px -8px rgb(38 95 148 / 85%);
+  animation: tab-pop 0.4s var(--spring);
 }
 
-/* ---------- Buttons ---------- */
+.tabs button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
+}
+
+/* ================= Buttons ================= */
 .primary-button,
 .secondary-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -545,21 +613,41 @@ onMounted(async () => {
   padding: 10px 18px;
   border: 0;
   border-radius: 8px;
+  overflow: hidden;
   font: inherit;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
 }
 
 .primary-button {
-  background: var(--blue);
+  background: linear-gradient(135deg, #2c6ba5 0%, var(--blue) 60%, #1f4f7d 100%);
   color: #fff;
+  box-shadow: 0 12px 22px -14px rgb(38 95 148 / 85%);
+}
+
+/* light sweep on hover */
+.primary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 28%), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s var(--ease);
 }
 
 .primary-button:hover:not(:disabled) {
-  background: var(--blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 26px -14px rgb(38 95 148 / 90%);
+}
+
+.primary-button:hover:not(:disabled)::before {
+  left: 130%;
 }
 
 .secondary-button {
@@ -569,20 +657,42 @@ onMounted(async () => {
 
 .secondary-button:hover:not(:disabled) {
   background: #d3e0f0;
+  transform: translateY(-1px);
 }
 
 .primary-button:active:not(:disabled),
 .secondary-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.text-button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
 }
 
 .primary-button:disabled,
 .secondary-button:disabled {
-  opacity: 0.55;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-/* ---------- Messages ---------- */
+/* processing a payment: progress stripe along the bottom edge */
+.primary-button:disabled::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--sky), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: load 1.1s ease-in-out infinite;
+}
+
+/* ================= Messages ================= */
 .inline-error,
 .inline-success {
   margin: 16px 0 0;
@@ -594,28 +704,83 @@ onMounted(async () => {
   border-left: 3px solid var(--danger);
   background: #fdeceb;
   color: var(--danger);
+  animation: shake 0.45s ease both;
 }
 
 .inline-success {
+  position: relative;
+  padding-left: 52px;
   border-left: 3px solid var(--ok);
   background: #e3f4ea;
   color: #1f6b41;
+  overflow: hidden;
+  animation: pop-in 0.5s var(--spring) both;
 }
 
+/* a green tick bursts out beside a saved payment */
+.inline-success::before {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-top: -13px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  animation: tick-pop 0.55s var(--spring) 0.1s both, ring-green 1.1s ease-out 0.25s 2;
+}
+
+/* the receipt notice unrolls like a printed slip */
 .receipt-ready {
+  position: relative;
   margin: 16px 0 0;
-  padding: 12px 14px;
+  padding: 14px 16px 14px 56px;
   border-left: 3px solid var(--blue);
-  border-radius: 6px;
+  border-bottom: 2px dashed #b6c8de;
+  border-radius: 6px 6px 2px 2px;
   background: #e8f1fb;
+  animation: receipt-print 0.9s var(--ease) both;
+}
+
+.receipt-ready::before {
+  content: '₱';
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-top: -15px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 16px;
+  font-weight: 700;
+  animation: ping-blue 2.4s ease-out 1s infinite;
 }
 
 .receipt-ready a {
   color: var(--blue);
   font-weight: 700;
+  text-decoration: none;
+  background: linear-gradient(var(--sky), var(--sky)) 0 100% / 0 2px no-repeat;
+  transition: background-size 0.35s var(--ease), color 0.2s ease;
 }
 
-/* ---------- KPI cards ---------- */
+.receipt-ready a:hover {
+  color: var(--navy-deep);
+  background-size: 100% 2px;
+}
+
+/* ================= KPI cards ================= */
 .kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -624,8 +789,19 @@ onMounted(async () => {
 }
 
 .kpi {
+  position: relative;
   border-top: 3px solid var(--blue);
+  overflow: hidden;
+  animation: pop-in 0.6s var(--spring) both;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s ease;
 }
+
+.kpi:nth-child(1) { animation-delay: 0.05s; }
+.kpi:nth-child(2) { animation-delay: 0.12s; }
+.kpi:nth-child(3) { animation-delay: 0.19s; }
+.kpi:nth-child(4) { animation-delay: 0.26s; }
+.kpi:nth-child(5) { animation-delay: 0.33s; }
+.kpi:nth-child(n + 6) { animation-delay: 0.4s; }
 
 .kpi:nth-child(4n + 2) {
   border-top-color: var(--sky);
@@ -637,6 +813,28 @@ onMounted(async () => {
 
 .kpi:nth-child(4n) {
   border-top-color: var(--warn);
+}
+
+/* a coin shine sweeps across the card on hover */
+.kpi::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(143 196 245 / 35%), transparent);
+  transform: skewX(-20deg);
+  pointer-events: none;
+}
+
+.kpi:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 34px -22px rgb(17 44 73 / 60%);
+}
+
+.kpi:hover::after {
+  animation: sheen 0.9s ease both;
 }
 
 .kpi span {
@@ -654,9 +852,10 @@ onMounted(async () => {
   font-size: 28px;
   font-weight: 600;
   line-height: 1.1;
+  animation: amount-in 0.8s var(--ease) 0.3s both;
 }
 
-/* ---------- Forms ---------- */
+/* ================= Forms ================= */
 .form-grid,
 .stack-form,
 .report-filters {
@@ -681,6 +880,27 @@ onMounted(async () => {
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
 }
 
+/* fields appear one after another */
+.form-grid > *,
+.stack-form > * {
+  animation: rise 0.5s var(--ease) both;
+}
+
+.form-grid > :nth-child(1),
+.stack-form > :nth-child(1) { animation-delay: 0.15s; }
+.form-grid > :nth-child(2),
+.stack-form > :nth-child(2) { animation-delay: 0.2s; }
+.form-grid > :nth-child(3),
+.stack-form > :nth-child(3) { animation-delay: 0.25s; }
+.form-grid > :nth-child(4),
+.stack-form > :nth-child(4) { animation-delay: 0.3s; }
+.form-grid > :nth-child(5),
+.stack-form > :nth-child(5) { animation-delay: 0.35s; }
+.form-grid > :nth-child(6),
+.stack-form > :nth-child(6) { animation-delay: 0.4s; }
+.form-grid > :nth-child(n + 7),
+.stack-form > :nth-child(n + 7) { animation-delay: 0.45s; }
+
 .form-grid label,
 .stack-form label,
 .report-filters label {
@@ -689,6 +909,13 @@ onMounted(async () => {
   color: var(--navy-deep);
   font-size: 13px;
   font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.form-grid label:has(input:focus, select:focus),
+.stack-form label:has(input:focus, select:focus),
+.report-filters label:has(input:focus, select:focus) {
+  color: var(--blue);
 }
 
 .form-grid input,
@@ -708,7 +935,7 @@ onMounted(async () => {
   background: var(--field);
   color: var(--text);
   font: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
 }
 
 .form-grid input:hover,
@@ -731,16 +958,45 @@ onMounted(async () => {
   outline: none;
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 16%), 0 10px 20px -14px rgb(38 95 148 / 55%);
 }
 
+.form-grid input:focus,
+.form-grid select:focus,
+.stack-form input:focus,
+.stack-form select:focus {
+  transform: translateY(-1px);
+}
+
+/* amount fields use a larger, easier-to-read figure */
+.form-grid input[type='number'],
+.stack-form input[type='number'] {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* proof upload: a drop zone that invites the file */
 .stack-form input[type='file'] {
-  padding: 14px 12px;
+  padding: 18px 12px;
   border: 2px dashed #b6c8de;
-  background: #f9fbfe;
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(135deg, rgb(143 196 245 / 0%) 0 12px, rgb(143 196 245 / 14%) 12px 24px),
+    #f9fbfe;
+  background-size: 34px 34px, auto;
   color: var(--muted);
   font-size: 13px;
   cursor: pointer;
+  animation: rise 0.5s var(--ease) 0.4s both, zone-breathe 3s ease-in-out 1.4s infinite;
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.3s var(--spring);
+}
+
+.stack-form input[type='file']:hover {
+  border-color: var(--blue);
+  background-color: #eef5fd;
+  transform: scale(1.015);
+  animation: rise 0.5s var(--ease) 0.4s both, stripes 1.2s linear infinite;
 }
 
 .stack-form input[type='file']::file-selector-button {
@@ -753,6 +1009,12 @@ onMounted(async () => {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s var(--spring);
+}
+
+.stack-form input[type='file']::file-selector-button:hover {
+  background: var(--blue-hover);
+  transform: translateY(-1px);
 }
 
 .wide {
@@ -767,6 +1029,19 @@ onMounted(async () => {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--field);
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s var(--spring);
+}
+
+.checkbox:hover {
+  border-color: #b6c8de;
+  background: #e3ecf8;
+  transform: translateY(-1px);
+}
+
+.checkbox:has(input:checked) {
+  border-color: var(--blue);
+  background: #e1edfa;
 }
 
 .checkbox input {
@@ -782,7 +1057,7 @@ onMounted(async () => {
   align-items: center;
 }
 
-/* ---------- Tables ---------- */
+/* ================= Tables: ledger entries ================= */
 .table-wrap {
   overflow: auto;
   margin-top: 16px;
@@ -814,12 +1089,28 @@ th {
   white-space: nowrap;
 }
 
+tbody tr {
+  animation: ledger-in 0.5s var(--ease) both;
+  transition: background 0.2s ease, box-shadow 0.25s ease;
+}
+
+tbody tr:nth-child(1) { animation-delay: 0.25s; }
+tbody tr:nth-child(2) { animation-delay: 0.31s; }
+tbody tr:nth-child(3) { animation-delay: 0.37s; }
+tbody tr:nth-child(4) { animation-delay: 0.43s; }
+tbody tr:nth-child(5) { animation-delay: 0.49s; }
+tbody tr:nth-child(6) { animation-delay: 0.55s; }
+tbody tr:nth-child(7) { animation-delay: 0.61s; }
+tbody tr:nth-child(8) { animation-delay: 0.67s; }
+tbody tr:nth-child(n + 9) { animation-delay: 0.73s; }
+
 tbody tr:last-child td {
   border-bottom: 0;
 }
 
 tbody tr:hover {
   background: #f6f9fd;
+  box-shadow: inset 3px 0 0 var(--sky);
 }
 
 td small {
@@ -832,11 +1123,13 @@ td a {
   color: var(--blue);
   font-weight: 600;
   text-decoration: none;
+  background: linear-gradient(var(--sky), var(--sky)) 0 100% / 0 2px no-repeat;
+  transition: background-size 0.3s var(--ease), color 0.2s ease;
 }
 
 td a:hover {
   color: var(--navy-deep);
-  text-decoration: underline;
+  background-size: 100% 2px;
 }
 
 .empty {
@@ -854,10 +1147,16 @@ td a:hover {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring);
 }
 
 .text-button:hover:not(:disabled) {
   background: var(--field);
+  transform: translateY(-1px);
+}
+
+.text-button:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .text-button:disabled {
@@ -865,23 +1164,28 @@ td a:hover {
   cursor: wait;
 }
 
+/* verify / approve: friendly green */
 .approve {
   color: var(--ok);
 }
 
 .approve:hover:not(:disabled) {
   background: #e3f4ea;
+  color: #1f6b41;
 }
 
+/* reject / reverse: the button trembles once as a warning */
 .reject {
   color: var(--danger);
 }
 
 .reject:hover:not(:disabled) {
   background: #fdeceb;
+  color: var(--danger);
+  animation: tremble 0.35s ease 1;
 }
 
-/* ---------- Bond processing form ---------- */
+/* ================= Bond processing form ================= */
 .bond-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(95px, 1fr));
@@ -891,6 +1195,14 @@ td a:hover {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #f9fbfe;
+  transition: border-color 0.25s ease, box-shadow 0.3s ease, background 0.25s ease;
+}
+
+/* the form you are working in lifts and glows */
+.bond-form:focus-within {
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 14px 26px -18px rgb(38 95 148 / 60%);
 }
 
 .bond-form input,
@@ -904,10 +1216,236 @@ td a:hover {
   grid-column: 1 / -1;
 }
 
-/* ---------- Responsive ---------- */
+/* ================= Keyframes ================= */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.84);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tab-pop {
+  0% {
+    transform: scale(0.9);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* amounts count up into place */
+@keyframes amount-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.92);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes ledger-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* the receipt prints from the top down */
+@keyframes receipt-print {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+
+@keyframes coin-rise {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-34px) rotate(14deg);
+  }
+}
+
+@keyframes sheen {
+  from {
+    left: -60%;
+  }
+  to {
+    left: 140%;
+  }
+}
+
+@keyframes tick-pop {
+  from {
+    transform: scale(0) rotate(-40deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes ring-green {
+  0% {
+    box-shadow: 0 0 0 0 rgb(45 138 87 / 55%);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgb(45 138 87 / 0%);
+  }
+}
+
+@keyframes ping-blue {
+  0% {
+    box-shadow: 0 0 0 0 rgb(38 95 148 / 40%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgb(38 95 148 / 0%);
+  }
+}
+
+@keyframes zone-breathe {
+  0%,
+  100% {
+    border-color: #b6c8de;
+  }
+  50% {
+    border-color: var(--sky);
+  }
+}
+
+@keyframes stripes {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 34px 0, 0 0;
+  }
+}
+
+@keyframes tremble {
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+  50% {
+    transform: translateX(2px) rotate(1deg);
+  }
+  75% {
+    transform: translateX(-1px);
+  }
+}
+
+@keyframes load {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+/* ================= Responsive ================= */
 @media (max-width: 1000px) {
   .content-grid {
     grid-template-columns: 1fr;
+  }
+
+  .content-grid > .panel:first-child,
+  .content-grid > .panel:last-child {
+    animation-name: rise;
   }
 }
 
@@ -921,6 +1459,10 @@ td a:hover {
 @media (max-width: 560px) {
   .page-heading {
     padding: 22px 20px;
+  }
+
+  .page-heading::after {
+    display: none;
   }
 
   .page-heading h1 {
@@ -939,16 +1481,55 @@ td a:hover {
   .panel {
     padding: 16px;
   }
+
+  .bond-form {
+    min-width: 0;
+  }
 }
 
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .page-heading,
+  .page-heading::after,
+  .loading,
+  .panel,
+  .tabs,
+  .tabs button.active,
+  .primary-button:disabled::after,
+  .inline-error,
+  .inline-success,
+  .inline-success::before,
+  .receipt-ready,
+  .receipt-ready::before,
+  .kpi,
+  .kpi strong,
+  .kpi:hover::after,
+  .form-grid > *,
+  .stack-form > *,
+  .stack-form input[type='file'],
+  .stack-form input[type='file']:hover,
+  tbody tr,
+  .reject:hover:not(:disabled) {
+    animation: none;
+  }
+
+  .panel,
   .tabs button,
   .primary-button,
+  .primary-button::before,
   .secondary-button,
+  .kpi,
   .form-grid input,
   .form-grid select,
   .stack-form input,
-  .stack-form select {
+  .stack-form select,
+  .form-grid label,
+  .checkbox,
+  .text-button,
+  .bond-form,
+  tbody tr,
+  td a,
+  .receipt-ready a {
     transition: none;
   }
 }

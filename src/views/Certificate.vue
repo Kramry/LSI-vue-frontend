@@ -999,6 +999,8 @@ onMounted(async () => {
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   max-width: 1500px;
   margin: auto;
@@ -1022,8 +1024,9 @@ onMounted(async () => {
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
+  animation: drop-in 0.6s var(--ease) both;
 }
 
 .page-heading::before {
@@ -1034,8 +1037,27 @@ onMounted(async () => {
   pointer-events: none;
 }
 
+/* a seal that turns slowly behind the heading */
+.page-heading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 9%;
+  width: 150px;
+  height: 150px;
+  margin-top: -75px;
+  border: 2px dashed rgb(143 196 245 / 40%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgb(143 196 245 / 22%) 0 38%, transparent 39%),
+    radial-gradient(circle, transparent 0 56%, rgb(143 196 245 / 28%) 57% 59%, transparent 60%);
+  animation: seal-spin 28s linear infinite;
+  pointer-events: none;
+}
+
 .page-heading > * {
   position: relative;
+  z-index: 1;
 }
 
 .page-heading h1 {
@@ -1060,6 +1082,7 @@ onMounted(async () => {
 
 .page-heading .secondary-button:hover:not(:disabled) {
   background: rgb(255 255 255 / 22%);
+  transform: translateY(-2px);
 }
 
 .section-heading h2,
@@ -1091,6 +1114,7 @@ onMounted(async () => {
 .loading {
   padding: 28px 0;
   text-align: center;
+  animation: breathe 1.4s ease-in-out infinite;
 }
 
 /* ================= Panels ================= */
@@ -1102,12 +1126,19 @@ onMounted(async () => {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+  animation: rise 0.6s var(--ease) 0.1s both;
+  transition: box-shadow 0.3s ease;
+}
+
+.panel:hover {
+  box-shadow: 0 16px 34px -20px rgb(17 44 73 / 50%);
 }
 
 .section {
   margin-top: 20px;
 }
 
+/* the blue tab on top of settings panels draws itself in */
 .settings-form .panel::before,
 #sec-versions::before,
 #sec-signatories::before {
@@ -1119,29 +1150,52 @@ onMounted(async () => {
   height: 4px;
   border-radius: 0 0 6px 6px;
   background: linear-gradient(90deg, var(--blue), var(--sky));
+  transform-origin: left;
+  animation: tab-draw 0.7s var(--ease) 0.3s both;
 }
 
 /* ================= Buttons ================= */
 .secondary-button,
 .primary-button,
 .danger-button {
+  position: relative;
   min-height: 42px;
   padding: 10px 18px;
   border: 0;
   border-radius: 8px;
+  overflow: hidden;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
 }
 
 .primary-button {
-  background: var(--blue);
+  background: linear-gradient(135deg, #2c6ba5 0%, var(--blue) 60%, #1f4f7d 100%);
   color: #fff;
+  box-shadow: 0 12px 22px -14px rgb(38 95 148 / 85%);
+}
+
+/* light sweep on hover */
+.primary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 28%), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s var(--ease);
 }
 
 .primary-button:hover:not(:disabled) {
-  background: var(--blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 26px -14px rgb(38 95 148 / 90%);
+}
+
+.primary-button:hover:not(:disabled)::before {
+  left: 130%;
 }
 
 .secondary-button {
@@ -1151,6 +1205,7 @@ onMounted(async () => {
 
 .secondary-button:hover:not(:disabled) {
   background: #d3e0f0;
+  transform: translateY(-1px);
 }
 
 .danger-button {
@@ -1160,19 +1215,34 @@ onMounted(async () => {
 
 .danger-button:hover:not(:disabled) {
   background: #f9d9d5;
+  transform: translateY(-1px);
 }
 
 .primary-button:active:not(:disabled),
 .secondary-button:active:not(:disabled),
 .danger-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 
 .primary-button:disabled,
 .secondary-button:disabled,
 .danger-button:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
+}
+
+/* busy: progress stripe along the bottom edge */
+.primary-button:disabled::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--sky), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: load 1.1s ease-in-out infinite;
 }
 
 .primary-button:focus-visible,
@@ -1193,12 +1263,17 @@ onMounted(async () => {
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring);
 }
 
 .text-button:hover:not(:disabled) {
   background: var(--field);
   color: var(--navy-deep);
+  transform: translateY(-1px);
+}
+
+.text-button:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .text-button:disabled {
@@ -1236,15 +1311,17 @@ onMounted(async () => {
   border-left: 3px solid var(--danger);
   background: #fdeceb;
   color: var(--danger);
+  animation: shake 0.45s ease both;
 }
 
 .inline-success {
   border-left: 3px solid var(--ok);
   background: #e3f4ea;
   color: #1f6b41;
+  animation: pop-in 0.5s var(--spring) both;
 }
 
-/* ================= Tables ================= */
+/* ================= Tables: rows cascade in ================= */
 .table-wrap {
   overflow: auto;
   margin-top: 16px;
@@ -1277,12 +1354,26 @@ th {
   white-space: nowrap;
 }
 
+tbody tr {
+  animation: row-in 0.5s var(--ease) both;
+  transition: background 0.2s ease, box-shadow 0.25s ease;
+}
+
+tbody tr:nth-child(1) { animation-delay: 0.25s; }
+tbody tr:nth-child(2) { animation-delay: 0.31s; }
+tbody tr:nth-child(3) { animation-delay: 0.37s; }
+tbody tr:nth-child(4) { animation-delay: 0.43s; }
+tbody tr:nth-child(5) { animation-delay: 0.49s; }
+tbody tr:nth-child(6) { animation-delay: 0.55s; }
+tbody tr:nth-child(n + 7) { animation-delay: 0.61s; }
+
 tbody tr:last-child td {
   border-bottom: 0;
 }
 
 tbody tr:hover {
   background: #f6f9fd;
+  box-shadow: inset 3px 0 0 var(--sky);
 }
 
 td small {
@@ -1360,6 +1451,7 @@ td.end {
   background: #fdeceb;
   color: var(--danger);
   white-space: normal;
+  animation: rise 0.5s var(--ease) both;
 }
 
 .count-badge {
@@ -1371,6 +1463,7 @@ td.end {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  animation: pop-in 0.5s var(--spring) 0.35s both;
 }
 
 /* status pills */
@@ -1386,6 +1479,7 @@ td.end {
   font-weight: 700;
   text-transform: capitalize;
   white-space: nowrap;
+  animation: pop-in 0.45s var(--spring) both;
 }
 
 .pill::before {
@@ -1413,6 +1507,11 @@ td.end {
   color: var(--danger);
 }
 
+/* waiting states (pending, awaiting signature) breathe with an amber glow */
+.pill:not(.issued):not(.approved):not(.draft):not(.revoked):not(.rejected) {
+  animation: pop-in 0.45s var(--spring) both, glow-amber 2.8s ease-in-out 1s infinite;
+}
+
 /* ================= Stat cards ================= */
 .stats-grid {
   display: grid;
@@ -1422,12 +1521,21 @@ td.end {
 }
 
 .stat {
+  position: relative;
   padding: 20px;
   border: 1px solid var(--line);
   border-top: 3px solid var(--blue);
   border-radius: 12px;
   background: #fff;
+  overflow: hidden;
+  animation: pop-in 0.6s var(--spring) both;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s ease;
 }
+
+.stat:nth-child(1) { animation-delay: 0.05s; }
+.stat:nth-child(2) { animation-delay: 0.12s; }
+.stat:nth-child(3) { animation-delay: 0.19s; }
+.stat:nth-child(4) { animation-delay: 0.26s; }
 
 .stat:nth-child(4n + 2) {
   border-top-color: var(--sky);
@@ -1439,6 +1547,11 @@ td.end {
 
 .stat:nth-child(4n) {
   border-top-color: var(--ok);
+}
+
+.stat:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 34px -22px rgb(17 44 73 / 60%);
 }
 
 .stat span {
@@ -1456,6 +1569,7 @@ td.end {
   font-size: 30px;
   font-weight: 600;
   line-height: 1.1;
+  animation: number-in 0.7s var(--ease) 0.3s both;
 }
 
 /* ================= Search ================= */
@@ -1469,6 +1583,12 @@ td.end {
   background: var(--field);
   color: var(--text);
   font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, max-width 0.35s var(--ease), background 0.2s ease;
+}
+
+/* the search box widens when you click into it */
+.search:focus {
+  max-width: 380px;
 }
 
 /* ================= Jump bar (settings) ================= */
@@ -1487,6 +1607,7 @@ td.end {
   backdrop-filter: blur(8px);
   box-shadow: 0 10px 28px -18px rgb(17 44 73 / 55%);
   scrollbar-width: none;
+  animation: drop-in 0.55s var(--ease) 0.1s both;
 }
 
 .jump-nav::-webkit-scrollbar {
@@ -1494,6 +1615,7 @@ td.end {
 }
 
 .jump-nav button {
+  position: relative;
   flex: 1 0 auto;
   padding: 10px 18px;
   border: 0;
@@ -1504,12 +1626,32 @@ td.end {
   font-weight: 700;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring);
+}
+
+/* an underline grows under the hovered section */
+.jump-nav button::after {
+  content: '';
+  position: absolute;
+  right: 18px;
+  bottom: 5px;
+  left: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sky);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s var(--ease);
 }
 
 .jump-nav button:hover {
   background: var(--field);
   color: var(--navy-deep);
+  transform: translateY(-1px);
+}
+
+.jump-nav button:hover::after {
+  transform: scaleX(1);
 }
 
 .jump-nav button:focus-visible {
@@ -1555,6 +1697,14 @@ td.end {
   color: var(--navy-deep);
   font-size: 13px;
   font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.form-grid label:has(input:focus, select:focus, textarea:focus),
+.inline-form label:has(input:focus, select:focus),
+.sign-actions label:has(input:focus),
+.reject-form label:has(textarea:focus) {
+  color: var(--blue);
 }
 
 .form-grid input,
@@ -1574,7 +1724,7 @@ td.end {
   background: var(--field);
   color: var(--text);
   font: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
 }
 
 .form-grid textarea,
@@ -1615,7 +1765,13 @@ td.end {
   outline: none;
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 16%), 0 10px 20px -14px rgb(38 95 148 / 55%);
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  transform: translateY(-1px);
 }
 
 .wide {
@@ -1631,12 +1787,13 @@ td.end {
   border-radius: 8px;
   background: var(--field);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s var(--spring);
 }
 
 .checkbox:hover {
   border-color: #b6c8de;
   background: #e3ecf8;
+  transform: translateY(-1px);
 }
 
 .checkbox:has(input:checked) {
@@ -1671,7 +1828,13 @@ td.end {
 /* grouped blocks */
 .group {
   margin-top: 26px;
+  animation: rise 0.55s var(--ease) both;
 }
+
+.group:nth-child(1) { animation-delay: 0.2s; }
+.group:nth-child(2) { animation-delay: 0.28s; }
+.group:nth-child(3) { animation-delay: 0.36s; }
+.group:nth-child(n + 4) { animation-delay: 0.44s; }
 
 .group:first-child {
   margin-top: 0;
@@ -1696,6 +1859,7 @@ td.end {
   border-radius: 2px;
   background: var(--sky);
   box-shadow: 0 0 0 3px rgb(143 196 245 / 28%);
+  animation: marker-pulse 3s ease-in-out infinite;
 }
 
 .group-title::after {
@@ -1703,6 +1867,8 @@ td.end {
   flex: 1;
   height: 1px;
   background: var(--line);
+  transform-origin: left;
+  animation: tab-draw 0.8s var(--ease) 0.3s both;
 }
 
 .hint {
@@ -1731,12 +1897,22 @@ td.end {
   border-left: 3px solid var(--sky);
   border-radius: 8px;
   background: #f9fbfe;
-  transition: box-shadow 0.15s, border-color 0.15s;
+  animation: row-in 0.45s var(--ease) both;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s var(--ease);
 }
+
+.layout-item:nth-child(1) { animation-delay: 0.3s; }
+.layout-item:nth-child(2) { animation-delay: 0.36s; }
+.layout-item:nth-child(3) { animation-delay: 0.42s; }
+.layout-item:nth-child(4) { animation-delay: 0.48s; }
+.layout-item:nth-child(5) { animation-delay: 0.54s; }
+.layout-item:nth-child(n + 6) { animation-delay: 0.6s; }
 
 .layout-item:hover {
   border-color: #cfdcec;
+  border-left-color: var(--blue);
   box-shadow: 0 8px 20px -16px rgb(17 44 73 / 55%);
+  transform: translateX(3px);
 }
 
 .layout-item strong {
@@ -1762,6 +1938,7 @@ td.end {
 .template-preview {
   position: sticky;
   top: 80px;
+  animation: slide-right 0.7s var(--ease) 0.3s both;
 }
 
 .edit-banner {
@@ -1778,6 +1955,7 @@ td.end {
   color: var(--navy-deep);
   font-size: 14px;
   line-height: 1.5;
+  animation: slide-left 0.5s var(--ease) both;
 }
 
 .edit-banner::before {
@@ -1793,6 +1971,7 @@ td.end {
   font-size: 13px;
   font-weight: 800;
   font-style: italic;
+  animation: ping-blue 2.4s ease-out infinite;
 }
 
 .certificate-live-preview {
@@ -1819,6 +1998,7 @@ td.end {
   margin: 4px 0 0;
 }
 
+/* the sheet lifts like paper and catches a sheen on hover */
 .certificate-preview-sheet {
   position: relative;
   width: 100%;
@@ -1828,6 +2008,30 @@ td.end {
   background: #fff;
   color: #233344;
   box-shadow: 0 1px 2px rgb(17 44 73 / 18%), 0 18px 36px -14px rgb(17 44 73 / 40%);
+  animation: paper-in 0.7s var(--ease) 0.4s both;
+  transition: transform 0.4s var(--ease), box-shadow 0.4s ease;
+}
+
+.certificate-preview-sheet:hover {
+  transform: translateY(-4px) rotate(-0.4deg);
+  box-shadow: 0 2px 4px rgb(17 44 73 / 18%), 0 28px 44px -16px rgb(17 44 73 / 50%);
+}
+
+.certificate-preview-sheet::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -50%;
+  z-index: 2;
+  width: 35%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 55%), transparent);
+  transform: skewX(-20deg);
+  pointer-events: none;
+}
+
+.certificate-preview-sheet:hover::after {
+  animation: sheen 1s ease both;
 }
 
 .generated-preview {
@@ -1974,6 +2178,7 @@ td.end {
 }
 
 /* ================= Signatories ================= */
+/* the pad invites a signature: its dashed border breathes, and turns blue on hover */
 .signature-pad {
   display: block;
   max-width: 100%;
@@ -1986,6 +2191,14 @@ td.end {
     #fbfdff;
   touch-action: none;
   cursor: crosshair;
+  animation: pad-wait 3.2s ease-in-out infinite;
+  transition: border-color 0.25s ease, box-shadow 0.3s ease;
+}
+
+.signature-pad:hover {
+  border-color: var(--blue);
+  box-shadow: 0 12px 24px -18px rgb(38 95 148 / 55%);
+  animation: none;
 }
 
 .signatory-form + .table-wrap {
@@ -2008,6 +2221,7 @@ td.end {
   border-radius: 12px;
   background: #f3f6fb;
   box-shadow: 0 16px 34px -22px rgb(17 44 73 / 60%);
+  animation: paper-in 0.7s var(--ease) 0.15s both;
 }
 
 .signing-side {
@@ -2026,6 +2240,16 @@ td.end {
   border-radius: 14px;
   background: #fff;
   box-shadow: 0 10px 26px -20px rgb(17 44 73 / 55%);
+  animation: slide-right 0.6s var(--ease) both;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s ease;
+}
+
+.side-card.sign-actions { animation-delay: 0.25s; }
+.side-card.reject-form { animation-delay: 0.38s; }
+
+.side-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 32px -22px rgb(17 44 73 / 60%);
 }
 
 .side-card h3 {
@@ -2068,6 +2292,7 @@ td.end {
   content: '✓';
   background: #e1edfa;
   color: var(--blue);
+  animation: ping-blue 2.6s ease-out 1s infinite;
 }
 
 .side-card.reject-form {
@@ -2085,31 +2310,323 @@ td.end {
   width: 100%;
 }
 
-/* ================= Verification ================= */
+/* ================= Verification: the result lands like a stamp ================= */
 .verification-panel {
   border-left: 4px solid var(--blue);
+  transform-origin: top center;
+  animation: drawer-open 0.55s var(--ease) both;
 }
 
 .verification-result {
-  padding: 12px 14px;
+  position: relative;
+  padding: 14px 16px 14px 62px;
   border-radius: 6px;
   font-weight: 700;
+  overflow: hidden;
+}
+
+.verification-result::before {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
 }
 
 .verification-result.valid {
   border-left: 3px solid var(--ok);
   background: #e3f4ea;
   color: #1f6b41;
+  animation: stamp 0.6s var(--spring) both;
+}
+
+.verification-result.valid::before {
+  content: '✓';
+  background: var(--ok);
+  animation: tick-pop 0.6s var(--spring) 0.2s both, ring-green 1.1s ease-out 0.3s 2;
+}
+
+/* a light wash crosses a valid result once */
+.verification-result.valid::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -50%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 60%), transparent);
+  transform: skewX(-20deg);
+  animation: sheen 1.2s ease 0.3s both;
 }
 
 .verification-result.invalid {
   border-left: 3px solid var(--danger);
   background: #fdeceb;
   color: var(--danger);
+  animation: shake 0.5s ease both;
+}
+
+.verification-result.invalid::before {
+  content: '!';
+  background: var(--danger);
+  animation: tick-pop 0.5s var(--spring) 0.1s both, ring-red 1.1s ease-out 0.3s 2;
 }
 
 .verify-meta {
   color: var(--muted);
+}
+
+/* ================= Keyframes ================= */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes number-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tab-draw {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes drawer-open {
+  from {
+    opacity: 0;
+    transform: scaleY(0.9) translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* the sheet settles onto the page like paper being laid down */
+@keyframes paper-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) rotate(-1.2deg) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* an official stamp: lands big, then presses in */
+@keyframes stamp {
+  0% {
+    opacity: 0;
+    transform: scale(1.35) rotate(-3deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.97) rotate(0.5deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes tick-pop {
+  from {
+    transform: scale(0) rotate(-40deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes seal-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes sheen {
+  from {
+    left: -50%;
+  }
+  to {
+    left: 130%;
+  }
+}
+
+@keyframes pad-wait {
+  0%,
+  100% {
+    border-color: #b6c8de;
+  }
+  50% {
+    border-color: var(--sky);
+  }
+}
+
+@keyframes marker-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 3px rgb(143 196 245 / 28%);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgb(143 196 245 / 10%);
+  }
+}
+
+@keyframes glow-amber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(201 138 0 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(201 138 0 / 16%);
+  }
+}
+
+@keyframes ping-blue {
+  0% {
+    box-shadow: 0 0 0 0 rgb(38 95 148 / 40%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgb(38 95 148 / 0%);
+  }
+}
+
+@keyframes ring-green {
+  0% {
+    box-shadow: 0 0 0 0 rgb(45 138 87 / 55%);
+  }
+  100% {
+    box-shadow: 0 0 0 16px rgb(45 138 87 / 0%);
+  }
+}
+
+@keyframes ring-red {
+  0% {
+    box-shadow: 0 0 0 0 rgb(180 40 31 / 50%);
+  }
+  100% {
+    box-shadow: 0 0 0 16px rgb(180 40 31 / 0%);
+  }
+}
+
+@keyframes load {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
 }
 
 /* ================= Responsive ================= */
@@ -2122,6 +2639,11 @@ td.end {
   .template-preview,
   .signing-side {
     position: static;
+  }
+
+  .template-preview,
+  .side-card {
+    animation-name: rise;
   }
 
   .form-grid.cols-4 {
@@ -2181,6 +2703,10 @@ td.end {
     padding: 22px 20px;
   }
 
+  .page-heading::after {
+    display: none;
+  }
+
   .page-heading h1 {
     font-size: 26px;
   }
@@ -2192,19 +2718,75 @@ td.end {
   .preview {
     height: 450px;
   }
+
+  .verification-result {
+    padding-left: 58px;
+  }
+
+  .search:focus {
+    max-width: 100%;
+  }
 }
 
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .page-heading,
+  .page-heading::after,
+  .loading,
+  .panel,
+  .settings-form .panel::before,
+  #sec-versions::before,
+  #sec-signatories::before,
+  .primary-button:disabled::after,
+  .inline-error,
+  .inline-success,
+  tbody tr,
+  .rejection-note,
+  .count-badge,
+  .pill,
+  .stat,
+  .stat strong,
+  .jump-nav,
+  .group,
+  .group-title::before,
+  .group-title::after,
+  .layout-item,
+  .template-preview,
+  .edit-banner,
+  .edit-banner::before,
+  .certificate-preview-sheet,
+  .certificate-preview-sheet:hover::after,
+  .signature-pad,
+  .preview,
+  .side-card,
+  .side-card.sign-actions h3::before,
+  .verification-panel,
+  .verification-result,
+  .verification-result::before,
+  .verification-result::after {
+    animation: none;
+  }
+
+  .panel,
   .primary-button,
+  .primary-button::before,
   .secondary-button,
   .danger-button,
   .text-button,
+  .stat,
+  .search,
   .jump-nav button,
-  .checkbox,
-  .layout-item,
+  .jump-nav button::after,
   .form-grid input,
   .form-grid select,
-  .form-grid textarea {
+  .form-grid textarea,
+  .form-grid label,
+  .checkbox,
+  .layout-item,
+  .certificate-preview-sheet,
+  .signature-pad,
+  .side-card,
+  tbody tr {
     transition: none;
   }
 }

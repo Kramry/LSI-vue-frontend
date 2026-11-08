@@ -190,41 +190,6 @@ onMounted(load)
   </main>
 </template>
 
-<script lang="ts">
-import { defineComponent, h } from 'vue'
-
-const PILL_KEYS = ['status', 'outcome', 'review_status']
-
-export default defineComponent({
-  components: {
-    TableView: defineComponent({
-      props: { rows: { type: Array, required: true }, columns: { type: Array, required: true } },
-      setup(props) {
-        return () =>
-          h('div', { class: 'table-wrap' }, [
-            h('table', [
-              h('thead', [
-                h('tr', (props.columns as Array<[string, string]>).map(([key, label]) => h('th', { key }, label)))
-              ]),
-              h('tbody', (props.rows as Array<Record<string, string>>).map((row, index) =>
-                h('tr', { key: index }, (props.columns as Array<[string, string]>).map(([key]) => {
-                  const value = row[key]
-                  if (PILL_KEYS.includes(key) && value) {
-                    return h('td', { key }, [
-                      h('span', { class: ['pill', String(value).toLowerCase().replace(/\s+/g, '-')] }, value)
-                    ])
-                  }
-                  return h('td', { key }, value || '—')
-                }))
-              ))
-            ])
-          ])
-      }
-    })
-  }
-})
-</script>
-
 <style scoped>
 .detail-page {
   --navy: #173a60;
@@ -239,6 +204,8 @@ export default defineComponent({
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   display: grid;
   gap: 20px;
@@ -249,21 +216,35 @@ export default defineComponent({
   font-variant-numeric: tabular-nums;
 }
 
+/* ================= Back link ================= */
 .back-link {
+  position: relative;
   justify-self: start;
   margin-bottom: -8px;
+  padding-left: 0;
   color: var(--blue);
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
+  animation: fade-in 0.5s ease both;
+  transition: color 0.2s ease, padding-left 0.3s var(--ease);
 }
 
+/* the arrow slides left on hover, as if heading back */
 .back-link:hover {
+  padding-left: 0;
   color: var(--navy-deep);
-  text-decoration: underline;
+  text-decoration: none;
+  letter-spacing: 0.01em;
 }
 
-/* ---------- Banner ---------- */
+.back-link:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ================= Banner ================= */
 .page-header {
   position: relative;
   display: flex;
@@ -273,8 +254,9 @@ export default defineComponent({
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
+  animation: drop-in 0.6s var(--ease) both;
 }
 
 .page-header::before {
@@ -285,8 +267,24 @@ export default defineComponent({
   pointer-events: none;
 }
 
+/* a chalkboard-style grid of dots drifts behind the heading */
+.page-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 36%;
+  background: radial-gradient(rgb(143 196 245 / 28%) 1.5px, transparent 1.6px) 0 0 / 22px 22px;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 75%);
+  mask-image: linear-gradient(90deg, transparent, #000 75%);
+  animation: dots-drift 12s linear infinite;
+  pointer-events: none;
+}
+
 .page-header > * {
   position: relative;
+  z-index: 1;
 }
 
 .page-header h1 {
@@ -296,9 +294,13 @@ export default defineComponent({
   font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  animation: rise 0.7s var(--ease) 0.1s both;
 }
 
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 8px;
   color: var(--sky);
   font-size: 12px;
@@ -306,10 +308,20 @@ export default defineComponent({
   letter-spacing: 0.14em;
 }
 
+.eyebrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5fd08c;
+  animation: ping 2.2s ease-out infinite;
+}
+
 .lead {
   margin: 6px 0 0;
   color: rgb(255 255 255 / 80%);
   font-size: 14px;
+  animation: rise 0.7s var(--ease) 0.2s both;
 }
 
 .actions {
@@ -318,30 +330,66 @@ export default defineComponent({
   gap: 10px;
 }
 
-/* ---------- Buttons ---------- */
+.actions > * {
+  animation: pop-in 0.55s var(--spring) both;
+}
+
+.actions > :nth-child(1) { animation-delay: 0.25s; }
+.actions > :nth-child(2) { animation-delay: 0.33s; }
+.actions > :nth-child(n + 3) { animation-delay: 0.41s; }
+
+/* ================= Buttons ================= */
 .primary-button,
 .ghost-button,
 .light-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-height: 42px;
   padding: 9px 16px;
   border-radius: 8px;
+  overflow: hidden;
   font-size: 13.5px;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
 }
 
 .primary-button {
-  background: var(--blue);
+  background: linear-gradient(135deg, #2c6ba5 0%, var(--blue) 60%, #1f4f7d 100%);
   color: #fff;
+  box-shadow: 0 12px 22px -14px rgb(38 95 148 / 85%);
+}
+
+/* light sweep on hover */
+.primary-button::before,
+.light-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 35%), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s var(--ease);
+}
+
+.primary-button:hover,
+.ghost-button:hover,
+.light-button:hover {
+  transform: translateY(-2px);
+}
+
+.primary-button:hover::before,
+.light-button:hover::before {
+  left: 130%;
 }
 
 .primary-button:hover {
-  background: var(--blue-hover);
+  box-shadow: 0 18px 26px -14px rgb(38 95 148 / 90%);
 }
 
 .ghost-button {
@@ -361,12 +409,13 @@ export default defineComponent({
 
 .light-button:hover {
   background: #e3effb;
+  box-shadow: 0 14px 24px -14px rgb(0 0 0 / 55%);
 }
 
 .primary-button:active,
 .ghost-button:active,
 .light-button:active {
-  transform: translateY(1px);
+  transform: scale(0.97);
 }
 
 .primary-button:focus-visible,
@@ -378,7 +427,7 @@ export default defineComponent({
   outline-offset: 2px;
 }
 
-/* ---------- Tabs ---------- */
+/* ================= Tabs ================= */
 .tabs {
   display: flex;
   gap: 4px;
@@ -388,6 +437,7 @@ export default defineComponent({
   border-radius: 12px;
   background: #fff;
   scrollbar-width: none;
+  animation: drop-in 0.55s var(--ease) 0.15s both;
 }
 
 .tabs::-webkit-scrollbar {
@@ -395,6 +445,7 @@ export default defineComponent({
 }
 
 .tabs a {
+  position: relative;
   flex: none;
   padding: 10px 18px;
   border-radius: 9px;
@@ -403,21 +454,42 @@ export default defineComponent({
   text-decoration: none;
   text-transform: capitalize;
   white-space: nowrap;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
+}
+
+/* an underline grows beneath the hovered tab */
+.tabs a::after {
+  content: '';
+  position: absolute;
+  right: 18px;
+  bottom: 5px;
+  left: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--sky);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s var(--ease);
 }
 
 .tabs a:hover:not(.active) {
   background: var(--field);
   color: var(--navy-deep);
+  transform: translateY(-1px);
+}
+
+.tabs a:hover:not(.active)::after {
+  transform: scaleX(1);
 }
 
 .tabs a.active {
   background: var(--blue);
   color: #fff;
-  box-shadow: 0 6px 14px -8px rgb(38 95 148 / 80%);
+  box-shadow: 0 8px 16px -8px rgb(38 95 148 / 85%);
+  animation: tab-pop 0.4s var(--spring);
 }
 
-/* ---------- Overview ---------- */
+/* ================= Overview stats ================= */
 .stat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -425,12 +497,21 @@ export default defineComponent({
 }
 
 .stat {
+  position: relative;
   padding: 20px;
   border: 1px solid var(--line);
   border-top: 3px solid var(--blue);
   border-radius: 12px;
   background: #fff;
+  overflow: hidden;
+  animation: pop-in 0.6s var(--spring) both;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s ease;
 }
+
+.stat:nth-child(1) { animation-delay: 0.05s; }
+.stat:nth-child(2) { animation-delay: 0.12s; }
+.stat:nth-child(3) { animation-delay: 0.19s; }
+.stat:nth-child(4) { animation-delay: 0.26s; }
 
 .stat:nth-child(4n + 2) {
   border-top-color: var(--ok);
@@ -444,8 +525,33 @@ export default defineComponent({
   border-top-color: var(--sky);
 }
 
+/* soft glow that appears on hover */
+.stat::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  right: -30%;
+  width: 70%;
+  height: 160%;
+  background: radial-gradient(circle, rgb(143 196 245 / 28%), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.stat:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 34px -22px rgb(17 44 73 / 60%);
+}
+
+.stat:hover::after {
+  opacity: 1;
+}
+
 .stat strong,
 .stat span {
+  position: relative;
+  z-index: 1;
   display: block;
 }
 
@@ -455,6 +561,7 @@ export default defineComponent({
   font-size: 30px;
   font-weight: 600;
   line-height: 1.1;
+  animation: number-in 0.7s var(--ease) 0.3s both;
 }
 
 .stat span {
@@ -469,6 +576,17 @@ export default defineComponent({
   gap: 18px;
 }
 
+.overview-grid > .panel:first-child {
+  animation-name: slide-left;
+  animation-delay: 0.3s;
+}
+
+.overview-grid > .panel:last-child {
+  animation-name: slide-right;
+  animation-delay: 0.4s;
+}
+
+/* class information rows fade in one by one */
 .info-list {
   display: grid;
   gap: 4px;
@@ -481,6 +599,18 @@ export default defineComponent({
   gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
+  animation: rise 0.5s var(--ease) both;
+  transition: padding-left 0.25s var(--ease);
+}
+
+.info-list div:nth-child(1) { animation-delay: 0.5s; }
+.info-list div:nth-child(2) { animation-delay: 0.57s; }
+.info-list div:nth-child(3) { animation-delay: 0.64s; }
+.info-list div:nth-child(4) { animation-delay: 0.71s; }
+.info-list div:nth-child(n + 5) { animation-delay: 0.78s; }
+
+.info-list div:hover {
+  padding-left: 8px;
 }
 
 .info-list div:last-child {
@@ -498,6 +628,7 @@ export default defineComponent({
   font-weight: 600;
 }
 
+/* the big attendance figure and its gauge */
 .big-number {
   margin: 14px 0 10px;
   color: var(--navy-deep);
@@ -505,9 +636,11 @@ export default defineComponent({
   font-size: 46px;
   font-weight: 600;
   line-height: 1;
+  animation: number-in 0.8s var(--ease) 0.55s both;
 }
 
 .bar {
+  position: relative;
   height: 12px;
   border-radius: 8px;
   background: #e8eef7;
@@ -515,20 +648,42 @@ export default defineComponent({
 }
 
 .bar i {
+  position: relative;
   display: block;
   height: 100%;
   border-radius: 8px;
   background: linear-gradient(90deg, var(--sky), var(--blue));
+  transform-origin: left;
+  animation: gauge-fill 1.1s var(--ease) 0.7s both;
   transition: width 0.3s ease;
 }
 
-/* ---------- Panels ---------- */
+/* a moving highlight runs along the filled part of the bar */
+.bar i::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 55%), transparent);
+  animation: bar-shine 3.2s ease-in-out 1.9s infinite;
+}
+
+/* ================= Panels ================= */
 .panel {
+  position: relative;
   padding: 24px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+  animation: rise 0.6s var(--ease) 0.1s both;
+  transition: box-shadow 0.3s ease;
+}
+
+.panel:hover {
+  box-shadow: 0 16px 34px -20px rgb(17 44 73 / 50%);
 }
 
 .panel h2 {
@@ -561,9 +716,10 @@ export default defineComponent({
   color: var(--blue);
   font-size: 12px;
   font-weight: 700;
+  animation: pop-in 0.5s var(--spring) 0.3s both;
 }
 
-/* ---------- Tables (:deep reaches the TableView helper) ---------- */
+/* ================= Tables: the roster is called in order ================= */
 .table-wrap {
   overflow: auto;
   border: 1px solid var(--line);
@@ -598,6 +754,31 @@ td {
   vertical-align: middle;
 }
 
+.table-wrap :deep(tbody tr),
+tbody tr {
+  animation: row-in 0.5s var(--ease) both;
+  transition: background 0.2s ease, box-shadow 0.25s ease;
+}
+
+.table-wrap :deep(tbody tr:nth-child(1)),
+tbody tr:nth-child(1) { animation-delay: 0.2s; }
+.table-wrap :deep(tbody tr:nth-child(2)),
+tbody tr:nth-child(2) { animation-delay: 0.26s; }
+.table-wrap :deep(tbody tr:nth-child(3)),
+tbody tr:nth-child(3) { animation-delay: 0.32s; }
+.table-wrap :deep(tbody tr:nth-child(4)),
+tbody tr:nth-child(4) { animation-delay: 0.38s; }
+.table-wrap :deep(tbody tr:nth-child(5)),
+tbody tr:nth-child(5) { animation-delay: 0.44s; }
+.table-wrap :deep(tbody tr:nth-child(6)),
+tbody tr:nth-child(6) { animation-delay: 0.5s; }
+.table-wrap :deep(tbody tr:nth-child(7)),
+tbody tr:nth-child(7) { animation-delay: 0.56s; }
+.table-wrap :deep(tbody tr:nth-child(8)),
+tbody tr:nth-child(8) { animation-delay: 0.62s; }
+.table-wrap :deep(tbody tr:nth-child(n + 9)),
+tbody tr:nth-child(n + 9) { animation-delay: 0.68s; }
+
 .table-wrap :deep(tbody tr:last-child td),
 tbody tr:last-child td {
   border-bottom: 0;
@@ -606,6 +787,7 @@ tbody tr:last-child td {
 .table-wrap :deep(tbody tr:hover),
 tbody tr:hover {
   background: #f6f9fd;
+  box-shadow: inset 3px 0 0 var(--sky);
 }
 
 .num {
@@ -638,8 +820,14 @@ td.end {
 
 .person strong {
   color: var(--navy-deep);
+  transition: color 0.2s ease;
 }
 
+tbody tr:hover .person strong {
+  color: var(--blue);
+}
+
+/* avatars pop and turn slightly when their row is hovered */
 .avatar {
   display: grid;
   place-items: center;
@@ -650,6 +838,13 @@ td.end {
   color: var(--navy-deep);
   font-size: 13px;
   font-weight: 800;
+  transition: transform 0.35s var(--spring), background 0.25s ease, color 0.25s ease;
+}
+
+tbody tr:hover .avatar {
+  background: var(--blue);
+  color: #fff;
+  transform: scale(1.12) rotate(-6deg);
 }
 
 .text-button {
@@ -658,11 +853,13 @@ td.end {
   color: var(--blue);
   font-weight: 700;
   text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring);
 }
 
 .text-button:hover {
   background: var(--field);
   color: var(--navy-deep);
+  transform: translateX(3px);
 }
 
 .empty {
@@ -671,17 +868,21 @@ td.end {
   color: var(--muted);
 }
 
+/* empty tabs show a dotted box that gently breathes */
 .empty-box {
   margin: 0;
   padding: 32px 12px;
   border: 1px dashed #b6c8de;
   border-radius: 10px;
-  background: #f9fbfe;
+  background:
+    radial-gradient(rgb(17 44 73 / 6%) 1px, transparent 1px) 0 0 / 16px 16px,
+    #f9fbfe;
   color: var(--muted);
   text-align: center;
+  animation: rise 0.55s var(--ease) 0.2s both, zone-breathe 3.2s ease-in-out 1s infinite;
 }
 
-/* status pills (rendered by TableView) */
+/* status pills (drawn by the TableView helper) */
 .table-wrap :deep(.pill) {
   display: inline-block;
   padding: 4px 11px;
@@ -691,6 +892,7 @@ td.end {
   font-size: 12px;
   font-weight: 700;
   text-transform: capitalize;
+  animation: pop-in 0.45s var(--spring) both;
 }
 
 .table-wrap :deep(.pill.present),
@@ -713,13 +915,32 @@ td.end {
   color: var(--danger);
 }
 
-/* ---------- Announcements ---------- */
+/* pending items breathe with an amber glow so they stand out */
+.table-wrap :deep(.pill.pending),
+.table-wrap :deep(.pill.late) {
+  animation: pop-in 0.45s var(--spring) both, glow-amber 2.8s ease-in-out 1s infinite;
+}
+
+/* ================= Announcements ================= */
 .announcement {
   margin-top: 12px;
   padding: 14px 16px;
   border-left: 3px solid var(--sky);
   border-radius: 0 10px 10px 0;
   background: #f6f9fd;
+  animation: slide-right 0.55s var(--ease) both;
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s var(--ease);
+}
+
+.announcement:nth-of-type(1) { animation-delay: 0.2s; }
+.announcement:nth-of-type(2) { animation-delay: 0.3s; }
+.announcement:nth-of-type(3) { animation-delay: 0.4s; }
+.announcement:nth-of-type(n + 4) { animation-delay: 0.5s; }
+
+.announcement:hover {
+  border-left-color: var(--blue);
+  background: #eef5fd;
+  transform: translateX(4px);
 }
 
 .announcement h3 {
@@ -738,7 +959,7 @@ td.end {
   color: var(--muted);
 }
 
-/* ---------- States ---------- */
+/* ================= States ================= */
 .inline-error {
   margin: 0;
   padding: 12px 14px;
@@ -746,16 +967,208 @@ td.end {
   border-radius: 6px;
   background: #fdeceb;
   color: var(--danger);
+  animation: shake 0.45s ease both;
 }
 
 .loading {
   text-align: center;
+  animation: breathe 1.4s ease-in-out infinite;
 }
 
-/* ---------- Responsive ---------- */
+/* ================= Keyframes ================= */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(-26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tab-pop {
+  0% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes number-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* the gauge fills from empty to its value */
+@keyframes gauge-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes bar-shine {
+  0%,
+  60% {
+    left: -40%;
+  }
+  100% {
+    left: 130%;
+  }
+}
+
+@keyframes dots-drift {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 22px 22px;
+  }
+}
+
+@keyframes ping {
+  0% {
+    box-shadow: 0 0 0 0 rgb(95 208 140 / 65%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgb(95 208 140 / 0%);
+  }
+}
+
+@keyframes glow-amber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(201 138 0 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(201 138 0 / 16%);
+  }
+}
+
+@keyframes zone-breathe {
+  0%,
+  100% {
+    border-color: #b6c8de;
+  }
+  50% {
+    border-color: var(--sky);
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+/* ================= Responsive ================= */
 @media (max-width: 900px) {
   .overview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .overview-grid > .panel:first-child,
+  .overview-grid > .panel:last-child {
+    animation-name: rise;
   }
 }
 
@@ -763,6 +1176,10 @@ td.end {
   .page-header {
     display: grid;
     padding: 22px 20px;
+  }
+
+  .page-header::after {
+    display: none;
   }
 
   .page-header h1 {
@@ -789,12 +1206,52 @@ td.end {
   }
 }
 
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .back-link,
+  .page-header,
+  .page-header::after,
+  .page-header h1,
+  .lead,
+  .eyebrow::before,
+  .actions > *,
+  .tabs,
+  .tabs a.active,
+  .stat,
+  .stat strong,
+  .overview-grid > .panel,
+  .info-list div,
+  .big-number,
+  .bar i,
+  .bar i::after,
+  .panel,
+  .count-badge,
+  .table-wrap :deep(tbody tr),
+  tbody tr,
+  .empty-box,
+  .table-wrap :deep(.pill),
+  .announcement,
+  .inline-error,
+  .loading {
+    animation: none;
+  }
+
+  .back-link,
   .primary-button,
+  .primary-button::before,
   .ghost-button,
   .light-button,
   .tabs a,
-  .bar i {
+  .tabs a::after,
+  .stat,
+  .stat::after,
+  .info-list div,
+  .panel,
+  .table-wrap :deep(tbody tr),
+  tbody tr,
+  .avatar,
+  .text-button,
+  .announcement {
     transition: none;
   }
 }

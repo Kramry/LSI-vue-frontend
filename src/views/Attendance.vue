@@ -719,6 +719,8 @@ onUnmounted(() => {
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   display: grid;
   gap: 20px;
@@ -728,60 +730,8 @@ onUnmounted(() => {
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
-.trainee-qr-panel { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-.trainee-qr-image { width: 220px; height: 220px; }
 
-.manual-panel {
-  display: grid;
-  gap: 18px;
-}
-
-.manual-form {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 18px;
-}
-
-.manual-form label {
-  display: grid;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.manual-form input,
-.manual-form select,
-.manual-form textarea {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #cbd9ea;
-  border-radius: 8px;
-  background: #fff;
-  color: var(--text);
-  font: inherit;
-  padding: 10px 12px;
-}
-
-.manual-form textarea {
-  resize: vertical;
-}
-
-.remarks-field {
-  grid-column: span 2;
-}
-
-.manual-form .primary-button {
-  grid-column: span 2;
-  justify-self: start;
-}
-
-.inline-success {
-  color: var(--ok);
-  font-size: 13px;
-}
-
-/* ---------- Banner heading ---------- */
+/* ================= Banner ================= */
 .page-header,
 .section-heading {
   display: flex;
@@ -795,8 +745,9 @@ onUnmounted(() => {
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
+  animation: drop-in 0.6s var(--ease) both;
 }
 
 .page-header::before {
@@ -807,8 +758,23 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
+/* a thin scan beam crosses the banner every few seconds */
+.page-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 3px;
+  background: linear-gradient(180deg, transparent, var(--sky), transparent);
+  box-shadow: 0 0 18px 3px rgb(143 196 245 / 55%);
+  animation: beam 6s ease-in-out 1s infinite;
+  pointer-events: none;
+}
+
 .page-header > * {
   position: relative;
+  z-index: 1;
 }
 
 .page-header h1 {
@@ -842,15 +808,26 @@ onUnmounted(() => {
 
 .page-header .secondary-button:hover:not(:disabled) {
   background: rgb(255 255 255 / 22%);
+  transform: translateY(-2px);
 }
 
-/* ---------- Panels ---------- */
+/* ================= Panels ================= */
 .panel {
   padding: 24px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+  animation: rise 0.65s var(--ease) both;
+  transition: box-shadow 0.3s ease;
+}
+
+.panel:nth-of-type(1) { animation-delay: 0.1s; }
+.panel:nth-of-type(2) { animation-delay: 0.2s; }
+.panel:nth-of-type(n + 3) { animation-delay: 0.3s; }
+
+.panel:hover {
+  box-shadow: 0 16px 34px -20px rgb(17 44 73 / 50%);
 }
 
 .section-heading h2 {
@@ -868,13 +845,49 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
-/* ---------- Scan form ---------- */
+/* ================= Trainee QR card ================= */
+.trainee-qr-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.trainee-qr-image {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 18px 34px -22px rgb(17 44 73 / 60%);
+  animation: pop-in 0.7s var(--spring) 0.3s both;
+  transition: transform 0.4s var(--spring), box-shadow 0.3s ease;
+}
+
+.trainee-qr-image:hover {
+  transform: scale(1.04) rotate(-1deg);
+  box-shadow: 0 26px 40px -22px rgb(17 44 73 / 70%);
+}
+
+/* ================= Scan form ================= */
 .scan-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-top: 22px;
 }
+
+.scan-form > * {
+  animation: rise 0.5s var(--ease) both;
+}
+
+.scan-form > :nth-child(1) { animation-delay: 0.3s; }
+.scan-form > :nth-child(2) { animation-delay: 0.36s; }
+.scan-form > :nth-child(3) { animation-delay: 0.42s; }
+.scan-form > :nth-child(4) { animation-delay: 0.48s; }
+.scan-form > :nth-child(n + 5) { animation-delay: 0.54s; }
 
 .scan-form label,
 .action-field {
@@ -883,6 +896,11 @@ onUnmounted(() => {
   color: var(--navy-deep);
   font-size: 13px;
   font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.scan-form label:has(input:focus, select:focus) {
+  color: var(--blue);
 }
 
 .field-label {
@@ -901,7 +919,7 @@ onUnmounted(() => {
   background: var(--field);
   color: var(--text);
   font: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
 }
 
 .scan-form input:hover,
@@ -914,7 +932,8 @@ onUnmounted(() => {
   outline: none;
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 16%), 0 10px 20px -14px rgb(38 95 148 / 55%);
+  transform: translateY(-1px);
 }
 
 .scan-form input:disabled,
@@ -927,9 +946,16 @@ onUnmounted(() => {
   grid-column: span 2;
 }
 
+/* the QR field is "armed": a soft ready-to-scan glow */
 .qr-field input {
   font-size: 16px;
   letter-spacing: 0.02em;
+  border-color: #b6c8de;
+  animation: armed 2.8s ease-in-out 1s infinite;
+}
+
+.qr-field input:focus {
+  animation: none;
 }
 
 /* Time in / Time out toggle */
@@ -951,41 +977,63 @@ onUnmounted(() => {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s var(--spring);
 }
 
 .segmented button:hover:not(.active) {
   color: var(--navy-deep);
+  background: rgb(255 255 255 / 55%);
 }
 
 .segmented button.active {
   background: var(--blue);
   color: #fff;
-  box-shadow: 0 4px 10px -4px rgb(38 95 148 / 70%);
+  box-shadow: 0 6px 12px -6px rgb(38 95 148 / 75%);
+  animation: toggle-pop 0.4s var(--spring);
 }
 
-/* ---------- Buttons ---------- */
+/* ================= Buttons ================= */
 .primary-button,
 .secondary-button,
 .stop-button {
+  position: relative;
   align-self: end;
   min-height: 44px;
   padding: 9px 18px;
   border: 0;
   border-radius: 8px;
+  overflow: hidden;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
 }
 
 .primary-button {
-  background: var(--blue);
+  background: linear-gradient(135deg, #2c6ba5 0%, var(--blue) 60%, #1f4f7d 100%);
   color: #fff;
+  box-shadow: 0 12px 22px -14px rgb(38 95 148 / 85%);
+}
+
+.primary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 28%), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s var(--ease);
 }
 
 .primary-button:hover:not(:disabled) {
-  background: var(--blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 26px -14px rgb(38 95 148 / 90%);
+}
+
+.primary-button:hover:not(:disabled)::before {
+  left: 130%;
 }
 
 .secondary-button {
@@ -995,6 +1043,7 @@ onUnmounted(() => {
 
 .secondary-button:hover:not(:disabled) {
   background: #d3e0f0;
+  transform: translateY(-1px);
 }
 
 .stop-button {
@@ -1004,18 +1053,41 @@ onUnmounted(() => {
 
 .stop-button:hover {
   background: #f9d9d5;
+  transform: translateY(-1px);
 }
 
 .primary-button:active:not(:disabled),
 .secondary-button:active:not(:disabled),
 .stop-button:active {
-  transform: translateY(1px);
+  transform: scale(0.97);
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.stop-button:focus-visible,
+.segmented button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
 }
 
 .primary-button:disabled,
 .secondary-button:disabled {
   cursor: wait;
-  opacity: 0.6;
+  opacity: 0.75;
+}
+
+/* recording: progress stripe along the bottom edge */
+.primary-button:disabled::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--sky), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: load 1.1s ease-in-out infinite;
 }
 
 .scanner-tools {
@@ -1030,7 +1102,7 @@ onUnmounted(() => {
   align-self: auto;
 }
 
-/* ---------- Camera ---------- */
+/* ================= Camera ================= */
 .camera-scanner {
   max-width: 720px;
   margin: 20px auto 0;
@@ -1038,10 +1110,20 @@ onUnmounted(() => {
   border-radius: 14px;
   background: var(--navy-deep);
   box-shadow: 0 20px 40px -24px rgb(17 44 73 / 70%);
+  animation: camera-open 0.6s var(--ease) both;
 }
 
 .camera-frame {
   position: relative;
+}
+
+/* darkened edges draw the eye to the target square */
+.camera-frame::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 45%, rgb(10 25 45 / 55%) 100%);
+  pointer-events: none;
 }
 
 .camera-preview {
@@ -1054,7 +1136,9 @@ onUnmounted(() => {
 .camera-guide {
   position: absolute;
   inset: 12% 18%;
+  z-index: 1;
   pointer-events: none;
+  animation: lock-on 1.4s var(--ease) both;
 }
 
 .corner {
@@ -1062,6 +1146,8 @@ onUnmounted(() => {
   width: 34px;
   height: 34px;
   border: 0 solid var(--sky);
+  filter: drop-shadow(0 0 6px rgb(143 196 245 / 70%));
+  animation: corner-pulse 2.4s ease-in-out 1.4s infinite;
 }
 
 .corner.tl {
@@ -1104,15 +1190,6 @@ onUnmounted(() => {
   animation: sweep 2.2s ease-in-out infinite alternate;
 }
 
-@keyframes sweep {
-  from {
-    top: 10%;
-  }
-  to {
-    top: 90%;
-  }
-}
-
 .camera-status {
   margin: 0;
   padding: 12px 14px;
@@ -1121,7 +1198,7 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
-/* ---------- Messages ---------- */
+/* ================= Messages and scan result ================= */
 .inline-error {
   margin: 14px 0 0;
   padding: 12px 14px;
@@ -1130,21 +1207,64 @@ onUnmounted(() => {
   background: #fdeceb;
   color: var(--danger);
   font-size: 13px;
+  animation: shake 0.45s ease both;
 }
 
 .page-header + .inline-error {
   margin: 0;
 }
 
+.inline-success {
+  color: var(--ok);
+  font-size: 13px;
+  font-weight: 600;
+  animation: pop-in 0.5s var(--spring) both;
+}
+
+/* success burst: the confirmation grows in with a ring and a tick */
 .scan-result {
+  position: relative;
   display: grid;
   gap: 4px;
   margin-top: 16px;
-  padding: 14px 16px;
+  padding: 14px 16px 14px 62px;
   border-left: 3px solid var(--ok);
   border-radius: 6px;
   background: #e3f4ea;
   color: #1f6b41;
+  overflow: hidden;
+  animation: result-in 0.6s var(--spring) both;
+}
+
+.scan-result::before {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-top: -16px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 800;
+  animation: tick-pop 0.6s var(--spring) 0.15s both, ring 1.1s ease-out 0.2s 2;
+}
+
+/* a light wash sweeps across the card once */
+.scan-result::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -50%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 60%), transparent);
+  transform: skewX(-20deg);
+  animation: wash 1.2s ease 0.2s both;
 }
 
 .scan-result strong {
@@ -1157,7 +1277,87 @@ onUnmounted(() => {
   text-align: center;
 }
 
-/* ---------- Table and pills ---------- */
+/* ================= Manual attendance ================= */
+.manual-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.manual-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.manual-form > * {
+  animation: rise 0.5s var(--ease) both;
+}
+
+.manual-form > :nth-child(1) { animation-delay: 0.3s; }
+.manual-form > :nth-child(2) { animation-delay: 0.36s; }
+.manual-form > :nth-child(3) { animation-delay: 0.42s; }
+.manual-form > :nth-child(4) { animation-delay: 0.48s; }
+.manual-form > :nth-child(n + 5) { animation-delay: 0.54s; }
+
+.manual-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--navy-deep);
+  font-size: 13px;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.manual-form label:has(input:focus, select:focus, textarea:focus) {
+  color: var(--blue);
+}
+
+.manual-form input,
+.manual-form select,
+.manual-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
+}
+
+.manual-form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.manual-form input:hover,
+.manual-form select:hover,
+.manual-form textarea:hover {
+  border-color: #b6c8de;
+}
+
+.manual-form input:focus,
+.manual-form select:focus,
+.manual-form textarea:focus {
+  outline: none;
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 16%), 0 10px 20px -14px rgb(38 95 148 / 55%);
+  transform: translateY(-1px);
+}
+
+.remarks-field {
+  grid-column: span 2;
+}
+
+.manual-form .primary-button {
+  grid-column: span 2;
+  justify-self: start;
+}
+
+/* ================= Table: rows scan in ================= */
 .queue-badge,
 .record-count {
   display: inline-flex;
@@ -1169,11 +1369,14 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
+  animation: pop-in 0.5s var(--spring) 0.4s both;
 }
 
+/* pending-sync badge breathes so unsent scans are not forgotten */
 .queue-badge {
   background: #fbf0d3;
   color: #8a5d00;
+  animation: pop-in 0.5s var(--spring) both, glow-amber 2.6s ease-in-out 0.8s infinite;
 }
 
 .table-wrap {
@@ -1206,9 +1409,24 @@ th {
   text-transform: uppercase;
 }
 
+/* a new record flashes briefly, then rows below slide in */
+tbody tr {
+  animation: record-in 0.55s var(--ease) both;
+  transition: background 0.2s ease, box-shadow 0.25s ease;
+}
+
+tbody tr:nth-child(1) { animation: record-in 0.55s var(--ease) 0.35s both, new-flash 1.8s ease 0.5s 1; }
+tbody tr:nth-child(2) { animation-delay: 0.42s; }
+tbody tr:nth-child(3) { animation-delay: 0.49s; }
+tbody tr:nth-child(4) { animation-delay: 0.56s; }
+tbody tr:nth-child(5) { animation-delay: 0.63s; }
+tbody tr:nth-child(6) { animation-delay: 0.7s; }
+tbody tr:nth-child(n + 7) { animation-delay: 0.77s; }
+
 .name-cell {
   color: var(--navy-deep);
   font-weight: 600;
+  transition: color 0.2s ease;
 }
 
 tbody tr:last-child td {
@@ -1217,6 +1435,11 @@ tbody tr:last-child td {
 
 tbody tr:hover {
   background: #f6f9fd;
+  box-shadow: inset 3px 0 0 var(--sky);
+}
+
+tbody tr:hover .name-cell {
+  color: var(--blue);
 }
 
 .status-pill {
@@ -1228,6 +1451,7 @@ tbody tr:hover {
   font-size: 12px;
   font-weight: 700;
   text-transform: capitalize;
+  animation: pop-in 0.45s var(--spring) both;
 }
 
 .status-pill.present {
@@ -1245,7 +1469,215 @@ tbody tr:hover {
   color: var(--danger);
 }
 
-/* ---------- Responsive ---------- */
+/* ================= Keyframes ================= */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes beam {
+  0%,
+  45% {
+    left: -4px;
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+@keyframes camera-open {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* the target square shrinks in as if the camera is locking on */
+@keyframes lock-on {
+  from {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes corner-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes sweep {
+  from {
+    top: 10%;
+  }
+  to {
+    top: 90%;
+  }
+}
+
+@keyframes armed {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(38 95 148 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(38 95 148 / 14%);
+  }
+}
+
+@keyframes toggle-pop {
+  0% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes result-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes tick-pop {
+  from {
+    transform: scale(0) rotate(-40deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(45 138 87 / 55%);
+  }
+  100% {
+    box-shadow: 0 0 0 16px rgb(45 138 87 / 0%);
+  }
+}
+
+@keyframes wash {
+  from {
+    left: -50%;
+  }
+  to {
+    left: 130%;
+  }
+}
+
+@keyframes record-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes new-flash {
+  0%,
+  100% {
+    background: transparent;
+  }
+  30% {
+    background: rgb(143 196 245 / 28%);
+  }
+}
+
+@keyframes glow-amber {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(201 138 0 / 0%);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(201 138 0 / 18%);
+  }
+}
+
+@keyframes load {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+/* ================= Responsive ================= */
 @media (max-width: 850px) {
   .scan-form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1254,11 +1686,20 @@ tbody tr:hover {
   .qr-field {
     grid-column: span 2;
   }
+
+  .trainee-qr-panel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 @media (max-width: 560px) {
   .page-header {
     padding: 22px 20px;
+  }
+
+  .page-header::after {
+    display: none;
   }
 
   .page-header h1 {
@@ -1274,12 +1715,22 @@ tbody tr:hover {
     justify-content: space-between;
   }
 
-  .scan-form {
+  .scan-form,
+  .manual-form {
     grid-template-columns: 1fr;
   }
 
-  .qr-field {
+  .qr-field,
+  .remarks-field,
+  .manual-form .primary-button {
     grid-column: auto;
+  }
+
+  .trainee-qr-image {
+    width: 100%;
+    max-width: 260px;
+    height: auto;
+    aspect-ratio: 1;
   }
 
   .panel {
@@ -1289,20 +1740,56 @@ tbody tr:hover {
   .camera-guide {
     inset: 10% 10%;
   }
+
+  .scan-result {
+    padding-left: 58px;
+  }
 }
 
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .page-header,
+  .page-header::after,
+  .panel,
+  .trainee-qr-image,
+  .scan-form > *,
+  .manual-form > *,
+  .qr-field input,
+  .segmented button.active,
+  .primary-button:disabled::after,
+  .camera-scanner,
+  .camera-guide,
+  .corner,
+  .inline-error,
+  .inline-success,
+  .scan-result,
+  .scan-result::before,
+  .scan-result::after,
+  .queue-badge,
+  .record-count,
+  tbody tr,
+  .status-pill {
+    animation: none;
+  }
+
   .scan-line {
     animation: none;
     top: 50%;
   }
 
+  .panel,
+  .trainee-qr-image,
   .scan-form input,
   .scan-form select,
+  .manual-form input,
+  .manual-form select,
+  .manual-form textarea,
   .segmented button,
   .primary-button,
+  .primary-button::before,
   .secondary-button,
-  .stop-button {
+  .stop-button,
+  tbody tr {
     transition: none;
   }
 }
