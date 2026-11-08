@@ -100,6 +100,9 @@ onMounted(async () => {
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
@@ -536,7 +539,7 @@ nav a:focus-visible,
 }
 
 /* ================= Tablet and phone: top bar ================= */
-@media (max-width: 860px) {
+@media (max-width: 1023px) {
   .app-shell {
     grid-template-columns: 1fr;
   }
@@ -603,6 +606,8 @@ nav a:focus-visible,
 
   nav {
     display: flex;
+    width: 100%;
+    min-width: 0;
     gap: 6px;
     overflow-x: auto;
     padding-bottom: 2px;
@@ -641,7 +646,42 @@ nav a:focus-visible,
   .main-content {
     width: 100%;
     min-width: 0;
+    max-width: 100vw;
+    overflow-x: hidden;
     padding: clamp(0.75rem, 4vw, 1.125rem);
+  }
+}
+
+@media (max-width: 479px) {
+  .sidebar {
+    width: 100%;
+    max-width: 100vw;
+    padding-inline: 0.625rem;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-text {
+    font-size: clamp(0.875rem, 4vw, 1rem);
+  }
+
+  .account {
+    max-width: 10rem;
+  }
+
+  nav {
+    margin-inline: 0;
+  }
+
+  nav a {
+    min-height: 44px;
+  }
+
+  .main-content {
+    padding-inline: 0.75rem;
   }
 }
 
