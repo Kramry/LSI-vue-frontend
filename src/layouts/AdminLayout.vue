@@ -1,11 +1,16 @@
 <script setup>
-import { onMounted, ref } from 'vue'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { getSession, logout } from '../services/api'
 
 const router = useRouter()
+const route = useRoute()
 const user = ref(null)
 const signingOut = ref(false)
+const navOpen = ref(false)
+const compactLayout = window.matchMedia('(max-width: 1023px)')
+const isCompact = ref(compactLayout.matches)
+let previousBodyOverflow = ''
 
 const links = [
   { label: 'Dashboard', to: '/dashboard', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
@@ -31,6 +36,31 @@ const links = [
 
 const visibleLinks = () => links.filter((link) => link.roles.includes(user.value?.role))
 
+function closeNavigation() {
+  if (navOpen.value) document.body.style.overflow = previousBodyOverflow
+  navOpen.value = false
+}
+
+function toggleNavigation() {
+  if (navOpen.value) {
+    closeNavigation()
+    return
+  }
+  previousBodyOverflow = document.body.style.overflow
+  document.body.style.overflow = 'hidden'
+  navOpen.value = true
+  nextTick(() => document.querySelector('#main-navigation a')?.focus())
+}
+
+function handleKeydown(event) {
+  if (event.key === 'Escape' && navOpen.value) closeNavigation()
+}
+
+function handleViewportChange(event) {
+  isCompact.value = event.matches
+  if (!event.matches) closeNavigation()
+}
+
 async function signOut() {
   signingOut.value = true
   try {
@@ -43,15 +73,55 @@ async function signOut() {
   }
 }
 
+watch(() => route.fullPath, closeNavigation)
+
 onMounted(async () => {
+  document.addEventListener('keydown', handleKeydown)
+  compactLayout.addEventListener('change', handleViewportChange)
   const session = await getSession()
   user.value = session.user
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeydown)
+  compactLayout.removeEventListener('change', handleViewportChange)
+  closeNavigation()
 })
 </script>
 
 <template>
-  <div class="app-shell">
-    <aside class="sidebar">
+  <div class="app-shell" :class="{ 'nav-open': navOpen }">
+    <header class="mobile-header">
+      <RouterLink class="mobile-brand" to="/dashboard">
+        <img class="brand-mark" src="/lsi-official-logo.jpg" alt="">
+        <span>LSI <strong>SmartTrack</strong></span>
+      </RouterLink>
+      <button
+        class="menu-toggle"
+        type="button"
+        aria-controls="main-navigation"
+        :aria-expanded="navOpen"
+        :aria-label="navOpen ? 'Close navigation menu' : 'Open navigation menu'"
+        @click="toggleNavigation"
+      >
+        <span></span><span></span><span></span>
+      </button>
+    </header>
+
+    <button
+      class="sidebar-backdrop"
+      type="button"
+      aria-label="Close navigation menu"
+      tabindex="-1"
+      @click="closeNavigation"
+    ></button>
+
+    <aside
+      id="main-navigation"
+      class="sidebar"
+      :inert="isCompact && !navOpen"
+      :aria-hidden="isCompact && !navOpen ? 'true' : 'false'"
+    >
       <div class="side-top">
         <RouterLink class="brand" to="/dashboard">
           <img class="brand-mark" src="/lsi-official-logo.jpg" alt="LSI logo">
@@ -71,7 +141,7 @@ onMounted(async () => {
       </div>
 
       <nav aria-label="Main navigation">
-        <RouterLink v-for="link in visibleLinks()" :key="link.to" :to="link.to">
+        <RouterLink v-for="link in visibleLinks()" :key="link.label" :to="link.to" @click="closeNavigation">
           {{ link.label }}
         </RouterLink>
       </nav>
@@ -90,7 +160,7 @@ onMounted(async () => {
   </div>
 </template>
 
-<<style scoped>
+<style scoped>
 .app-shell {
   --navy: #173a60;
   --navy-deep: #112c49;
@@ -102,11 +172,57 @@ onMounted(async () => {
   min-height: 100vh;
   width: 100%;
   max-width: 100vw;
-  overflow-x: hidden;
+  min-width: 0;
+  overflow-x: clip;
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr);
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   background: var(--page, #f3f6fb);
+}
+
+/* ================= Compact navigation controls ================= */
+.mobile-header {
+  display: none;
+}
+
+.mobile-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--navy-deep);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.mobile-brand strong {
+  color: var(--blue);
+}
+
+.menu-toggle {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  flex: 0 0 44px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--navy);
+  background: #fff;
+  cursor: pointer;
+}
+
+.menu-toggle span {
+  width: 19px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+.sidebar-backdrop {
+  display: none;
 }
 
 /* ================= Sidebar ================= */
@@ -538,146 +654,164 @@ nav a:focus-visible,
   }
 }
 
-/* ================= Tablet and phone: top bar ================= */
+/* ================= Tablet and phone: off-canvas navigation ================= */
 @media (max-width: 1023px) {
   .app-shell {
-    grid-template-columns: 1fr;
+    display: block;
+    min-height: 100vh;
+  }
+
+  .mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 31;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border-bottom: 1px solid var(--line);
+    padding: 8px 16px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgb(17 44 73 / 8%);
   }
 
   .sidebar {
-    position: sticky;
-    z-index: 20;
+    position: fixed;
+    z-index: 41;
+    top: 64px;
+    bottom: 0;
+    left: 0;
+    width: min(280px, 86vw);
     height: auto;
-    gap: 10px;
-    padding: 12px 14px 10px;
-    overflow: visible;
-    box-shadow: 0 8px 20px -12px rgb(17 44 73 / 70%);
-    animation-name: fade-down;
+    gap: 18px;
+    padding: 20px 14px 18px;
+    overflow-y: auto;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform 0.25s var(--ease), visibility 0.25s ease;
+    box-shadow: 12px 0 32px rgb(17 44 73 / 22%);
+    animation: none;
+  }
+
+  .app-shell.nav-open .sidebar {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .sidebar-backdrop {
+    position: fixed;
+    z-index: 40;
+    inset: 64px 0 0;
+    border: 0;
+    background: rgb(10 25 42 / 45%);
+    cursor: pointer;
+  }
+
+  .app-shell.nav-open .sidebar-backdrop {
+    display: block;
+  }
+
+  .sidebar-backdrop:focus-visible {
+    outline-offset: -4px;
   }
 
   .sidebar::after {
-    display: none;
+    display: block;
   }
 
   .side-top {
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 12px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 18px;
   }
 
   .brand {
-    padding: 0;
+    padding: 0 8px;
   }
 
   .brand-text span {
-    display: inline;
-    margin-left: 4px;
-    letter-spacing: 0.1em;
+    display: block;
+    margin-left: 0;
+    letter-spacing: 0.14em;
   }
 
   .account {
-    justify-self: end;
-    padding: 6px 8px 6px 10px;
-    border-radius: 999px;
+    justify-self: stretch;
+    padding: 12px;
+    border-radius: 12px;
   }
 
   .account::after {
-    top: 6px;
-    left: 30px;
-    width: 8px;
-    height: 8px;
+    top: 12px;
+    left: 40px;
+    width: 9px;
+    height: 9px;
   }
 
   .avatar {
-    width: 30px;
-    height: 30px;
-    font-size: 13px;
+    width: 38px;
+    height: 38px;
+    font-size: 16px;
   }
 
   .user-summary {
-    display: none;
+    display: grid;
   }
 
   .sign-out-compact {
-    display: block;
-    padding: 6px 12px;
-    font-size: 13px;
+    display: none;
   }
 
-  nav {
-    display: flex;
-    width: 100%;
+  .sidebar nav {
+    display: grid;
+    width: auto;
     min-width: 0;
-    gap: 6px;
-    overflow-x: auto;
-    padding-bottom: 2px;
-    scrollbar-width: none;
+    gap: 4px;
+    overflow: visible;
+    padding-bottom: 0;
   }
 
-  nav::-webkit-scrollbar {
-    display: none;
+  .sidebar nav a {
+    padding: 11px 14px;
+    border-radius: 9px;
+    white-space: normal;
+    animation: none;
   }
 
-  nav a {
-    flex: none;
-    padding: 8px 14px;
-    border-radius: 999px;
-    white-space: nowrap;
-    animation-name: fade-down;
+  .sidebar nav a:hover {
+    transform: translateX(5px);
   }
 
-  nav a:hover,
-  nav a.router-link-active {
-    transform: none;
+  .sidebar nav a.router-link-active {
+    transform: translateX(3px);
   }
 
-  nav a::after {
-    border-radius: 999px;
-  }
-
-  nav a.router-link-active::before {
-    display: none;
+  .sidebar nav a::after {
+    border-radius: 9px;
   }
 
   .side-bottom {
-    display: none;
+    display: grid;
   }
 
   .main-content {
     width: 100%;
     min-width: 0;
-    max-width: 100vw;
-    overflow-x: hidden;
+    max-width: 100%;
+    overflow-x: clip;
     padding: clamp(0.75rem, 4vw, 1.125rem);
   }
 }
 
 @media (max-width: 479px) {
-  .sidebar {
-    width: 100%;
-    max-width: 100vw;
-    padding-inline: 0.625rem;
-  }
-
   .brand-mark {
     width: 32px;
     height: 32px;
   }
 
-  .brand-text {
-    font-size: clamp(0.875rem, 4vw, 1rem);
-  }
-
-  .account {
-    max-width: 10rem;
-  }
-
-  nav {
-    margin-inline: 0;
-  }
-
-  nav a {
-    min-height: 44px;
+  .mobile-header {
+    padding-inline: 12px;
   }
 
   .main-content {

@@ -223,6 +223,8 @@ onMounted(async () => {
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
+  width: 100%;
+  min-width: 0;
   max-width: 1450px;
   margin: auto;
   color: var(--text);
@@ -372,6 +374,7 @@ onMounted(async () => {
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
   gap: 16px;
 }
 
@@ -383,6 +386,7 @@ onMounted(async () => {
 
 .stat-card {
   position: relative;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -481,6 +485,7 @@ onMounted(async () => {
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
+  min-width: 0;
   gap: 18px;
   align-items: start;
   margin-top: 18px;
@@ -494,6 +499,7 @@ onMounted(async () => {
 }
 
 .panel {
+  min-width: 0;
   padding: 22px;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -548,6 +554,7 @@ onMounted(async () => {
   gap: 10px;
   align-items: stretch;
   width: 100%;
+  min-width: 0;
   min-height: 13.75rem;
   aspect-ratio: 16 / 5;
   margin-top: 20px;
@@ -835,6 +842,8 @@ onMounted(async () => {
 .table-wrap {
   overflow: auto;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   -webkit-overflow-scrolling: touch;
   margin-top: 16px;
   border: 1px solid var(--line);
@@ -1111,6 +1120,10 @@ tbody tr:hover .code-chip {
 }
 
 @media (max-width: 767px) {
+  .stats-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .side-col {
     grid-template-columns: 1fr;
   }
@@ -1140,15 +1153,18 @@ tbody tr:hover .code-chip {
   }
 
   .weekly-chart {
-    gap: 0.5rem;
+    gap: 0.25rem;
     min-height: 12rem;
     aspect-ratio: 4 / 3;
-    overflow-x: auto;
+    overflow: hidden;
   }
 
   .day-column {
-    min-width: 2.75rem;
+    min-width: 0;
+    font-size: 10px;
   }
+
+  .day-column small { white-space: nowrap; }
 
   .panel,
   .stat-card {
