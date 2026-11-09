@@ -240,8 +240,8 @@ onMounted(async () => {
       } catch {
         notice.value = 'Payment return received. Its status will update after Xendit confirms it.'
       }
-    } else if (isTrainee.value && paymentResult === 'failed') {
-      notice.value = 'Payment was not completed. Your fee balance has not changed.'
+    } else if (isTrainee.value && ['cancel', 'failed'].includes(paymentResult || '')) {
+      notice.value = 'Payment was canceled or not completed. Your fee balance has not changed.'
     }
     await load()
   } catch (reason) {
