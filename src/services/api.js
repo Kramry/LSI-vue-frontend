@@ -73,10 +73,13 @@ export async function apiRequest(path, options = {}) {
       .replace(/\s+/g, ' ')
       .trim()
       .slice(0, 180)
+    const contentType = response.headers.get('Content-Type') || ''
+    const isMarkupOrStylesheet = /text\/(?:html|css)/i.test(contentType)
+      || /@font-face|<\/?(?:!doctype|html|head|body|style)\b/i.test(responseText)
     let message = response.ok
       ? `The analytics server returned an invalid response (HTTP ${response.status}).`
       : `The server returned an invalid response (${response.status}).`
-    if (responseTextPreview) {
+    if (responseTextPreview && !isMarkupOrStylesheet) {
       message = `${responseTextPreview}${/HTTP [0-9]+/.test(responseTextPreview) ? '' : ` (HTTP ${response.status})`}`
     }
     const error = new ApiError(
