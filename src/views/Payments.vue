@@ -226,6 +226,23 @@ onMounted(async () => {
     const session = await getSession()
     role.value = session.user?.role || ''
     if (isTrainee.value) view.value = 'my_payments'
+    const query = new URLSearchParams(window.location.search)
+    const paymentResult = query.get('payment')
+    const reference = query.get('reference_id')
+    if (isTrainee.value && paymentResult === 'success' && reference) {
+      try {
+        const response = await apiGet<{ status: 'paid' | 'pending' | 'failed' }>(
+          `/payments/xendit/status?reference_id=${encodeURIComponent(reference)}`
+        )
+        notice.value = response.data.status === 'paid'
+          ? 'Payment confirmed and recorded.'
+          : 'Payment is being verified. Refresh in a moment to see the updated status.'
+      } catch {
+        notice.value = 'Payment return received. Its status will update after Xendit confirms it.'
+      }
+    } else if (isTrainee.value && paymentResult === 'failed') {
+      notice.value = 'Payment was not completed. Your fee balance has not changed.'
+    }
     await load()
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to load your account.'
