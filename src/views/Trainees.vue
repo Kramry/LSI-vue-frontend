@@ -229,6 +229,8 @@ onMounted(load)
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   max-width: 1450px;
   margin: auto;
@@ -237,7 +239,7 @@ onMounted(load)
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Banner and headings ---------- */
+/* ================= Banner ================= */
 .page-heading,
 .section-heading,
 .toolbar {
@@ -253,8 +255,9 @@ onMounted(load)
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
+  animation: drop-in 0.6s var(--ease) both;
 }
 
 .page-heading::before {
@@ -265,8 +268,31 @@ onMounted(load)
   pointer-events: none;
 }
 
+/* a small ID badge floats behind the heading */
+.page-heading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 10%;
+  width: 92px;
+  height: 124px;
+  margin-top: -62px;
+  border: 1.5px solid rgb(143 196 245 / 40%);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 34%, rgb(143 196 245 / 40%) 0 15px, transparent 16px),
+    linear-gradient(rgb(143 196 245 / 30%), rgb(143 196 245 / 30%)) 50% 66px / 52px 3px no-repeat,
+    linear-gradient(rgb(143 196 245 / 22%), rgb(143 196 245 / 22%)) 50% 80px / 38px 3px no-repeat,
+    rgb(255 255 255 / 5%);
+  transform: rotate(8deg);
+  transform-origin: top center;
+  animation: badge-swing 6s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .page-heading > * {
   position: relative;
+  z-index: 1;
 }
 
 .page-heading h1 {
@@ -276,11 +302,13 @@ onMounted(load)
   font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  animation: rise 0.7s var(--ease) 0.1s both;
 }
 
 .page-heading .muted {
   margin: 6px 0 0;
   color: rgb(255 255 255 / 80%);
+  animation: rise 0.7s var(--ease) 0.2s both;
 }
 
 .section-heading h2,
@@ -293,11 +321,23 @@ onMounted(load)
 }
 
 .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 8px;
   color: var(--sky);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.14em;
+}
+
+.eyebrow::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #5fd08c;
+  animation: ping 2.2s ease-out infinite;
 }
 
 .muted {
@@ -313,26 +353,55 @@ onMounted(load)
   gap: 10px;
 }
 
-/* ---------- Buttons ---------- */
+.heading-actions > * {
+  animation: pop-in 0.55s var(--spring) both;
+}
+
+.heading-actions > :nth-child(1) { animation-delay: 0.25s; }
+.heading-actions > :nth-child(2) { animation-delay: 0.33s; }
+.heading-actions > :nth-child(n + 3) { animation-delay: 0.41s; }
+
+/* ================= Buttons ================= */
 .primary-button,
 .secondary-button {
+  position: relative;
   min-height: 42px;
   padding: 10px 18px;
   border: 0;
   border-radius: 8px;
+  overflow: hidden;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
 }
 
 .primary-button {
-  background: var(--blue);
+  background: linear-gradient(135deg, #2c6ba5 0%, var(--blue) 60%, #1f4f7d 100%);
   color: #fff;
+  box-shadow: 0 12px 22px -14px rgb(38 95 148 / 85%);
+}
+
+/* light sweep on hover */
+.primary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 28%), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s var(--ease);
 }
 
 .primary-button:hover:not(:disabled) {
-  background: var(--blue-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 18px 26px -14px rgb(38 95 148 / 90%);
+}
+
+.primary-button:hover:not(:disabled)::before {
+  left: 130%;
 }
 
 .secondary-button {
@@ -342,6 +411,7 @@ onMounted(load)
 
 .secondary-button:hover:not(:disabled) {
   background: #d3e0f0;
+  transform: translateY(-1px);
 }
 
 .page-heading .secondary-button {
@@ -352,30 +422,54 @@ onMounted(load)
 
 .page-heading .secondary-button:hover:not(:disabled) {
   background: rgb(255 255 255 / 22%);
+  transform: translateY(-2px);
 }
 
 /* a primary button placed in the banner reads best in white */
 .page-heading .primary-button {
   background: #fff;
   color: var(--navy-deep);
+  box-shadow: none;
 }
 
 .page-heading .primary-button:hover:not(:disabled) {
   background: #e3effb;
+  box-shadow: 0 14px 24px -14px rgb(0 0 0 / 55%);
 }
 
 .primary-button:active:not(:disabled),
 .secondary-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.text-button:focus-visible {
+  outline: 3px solid var(--sky);
+  outline-offset: 2px;
 }
 
 .primary-button:disabled,
 .secondary-button:disabled {
-  opacity: 0.6;
+  opacity: 0.7;
   cursor: not-allowed;
 }
 
-/* ---------- Panels and summary cards ---------- */
+/* saving: progress stripe along the bottom edge */
+.primary-button:disabled::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--sky), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: load 1.1s ease-in-out infinite;
+}
+
+/* ================= Panels and summary cards ================= */
 .panel,
 .summary-card {
   padding: 22px;
@@ -387,7 +481,16 @@ onMounted(load)
 .panel {
   margin-top: 18px;
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+  animation: rise 0.65s var(--ease) 0.1s both;
+  transition: box-shadow 0.3s ease;
 }
+
+.panel:hover {
+  box-shadow: 0 16px 34px -20px rgb(17 44 73 / 50%);
+}
+
+.panel:nth-of-type(2) { animation-delay: 0.18s; }
+.panel:nth-of-type(n + 3) { animation-delay: 0.26s; }
 
 .summary-grid {
   display: grid;
@@ -397,8 +500,16 @@ onMounted(load)
 }
 
 .summary-card {
+  position: relative;
   border-top: 3px solid var(--blue);
+  overflow: hidden;
+  animation: pop-in 0.6s var(--spring) both;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s ease;
 }
+
+.summary-card:nth-child(1) { animation-delay: 0.05s; }
+.summary-card:nth-child(2) { animation-delay: 0.12s; }
+.summary-card:nth-child(3) { animation-delay: 0.19s; }
 
 .summary-card:nth-child(3n + 2) {
   border-top-color: var(--sky);
@@ -408,24 +519,53 @@ onMounted(load)
   border-top-color: var(--ok);
 }
 
-.summary-card span {
+/* soft glow that appears on hover */
+.summary-card::after {
+  content: '';
+  position: absolute;
+  top: -60%;
+  right: -30%;
+  width: 70%;
+  height: 160%;
+  background: radial-gradient(circle, rgb(143 196 245 / 28%), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.summary-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 22px 34px -22px rgb(17 44 73 / 60%);
+}
+
+.summary-card:hover::after {
+  opacity: 1;
+}
+
+.summary-card span,
+.summary-card strong {
+  position: relative;
+  z-index: 1;
   display: block;
+}
+
+.summary-card span {
   color: var(--muted);
   font-size: 13px;
   font-weight: 500;
 }
 
 .summary-card strong {
-  display: block;
   margin-top: 8px;
   color: var(--navy-deep);
   font-family: 'Fraunces', Georgia, serif;
   font-size: 30px;
   font-weight: 600;
   line-height: 1.1;
+  animation: number-in 0.7s var(--ease) 0.3s both;
 }
 
-/* ---------- Messages ---------- */
+/* ================= Messages ================= */
 .message {
   margin: 16px 0 0;
   padding: 12px 14px;
@@ -436,21 +576,61 @@ onMounted(load)
   border-left: 3px solid var(--danger);
   background: #fdeceb;
   color: var(--danger);
+  animation: shake 0.45s ease both;
 }
 
 .success {
+  position: relative;
+  padding-left: 52px;
   border-left: 3px solid var(--ok);
   background: #e3f4ea;
   color: #1f6b41;
+  overflow: hidden;
+  animation: pop-in 0.5s var(--spring) both;
 }
 
-/* ---------- Form ---------- */
+/* a green tick bursts out beside a saved trainee */
+.success::before {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-top: -13px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  animation: tick-pop 0.55s var(--spring) 0.1s both, ring-green 1.1s ease-out 0.25s 2;
+}
+
+/* ================= Form ================= */
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-top: 18px;
 }
+
+/* fields appear one after another */
+.form-grid > * {
+  animation: rise 0.5s var(--ease) both;
+}
+
+.form-grid > :nth-child(1) { animation-delay: 0.15s; }
+.form-grid > :nth-child(2) { animation-delay: 0.2s; }
+.form-grid > :nth-child(3) { animation-delay: 0.25s; }
+.form-grid > :nth-child(4) { animation-delay: 0.3s; }
+.form-grid > :nth-child(5) { animation-delay: 0.35s; }
+.form-grid > :nth-child(6) { animation-delay: 0.4s; }
+.form-grid > :nth-child(7) { animation-delay: 0.45s; }
+.form-grid > :nth-child(8) { animation-delay: 0.5s; }
+.form-grid > :nth-child(9) { animation-delay: 0.55s; }
+.form-grid > :nth-child(n + 10) { animation-delay: 0.6s; }
 
 .form-grid label,
 .filters label {
@@ -459,6 +639,12 @@ onMounted(load)
   color: var(--navy-deep);
   font-size: 13px;
   font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.form-grid label:has(input:focus, select:focus, textarea:focus),
+.filters label:has(input:focus, select:focus) {
+  color: var(--blue);
 }
 
 .form-grid input,
@@ -475,7 +661,7 @@ onMounted(load)
   background: var(--field);
   color: var(--text);
   font: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
 }
 
 .form-grid textarea {
@@ -499,7 +685,8 @@ onMounted(load)
   outline: none;
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 16%), 0 10px 20px -14px rgb(38 95 148 / 55%);
+  transform: translateY(-1px);
 }
 
 .wide {
@@ -511,22 +698,31 @@ onMounted(load)
   border-top: 1px dashed var(--line);
 }
 
-/* ---------- Filters and toolbar ---------- */
+/* ================= Filters and toolbar ================= */
 .filters {
   display: flex;
   gap: 12px;
   align-items: end;
 }
 
+/* the search field widens when you click into it, like opening a directory */
 .search-label {
   min-width: 260px;
+}
+
+.search-label input {
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease), min-width 0.4s var(--ease);
+}
+
+.search-label input:focus {
+  min-width: 340px;
 }
 
 .toolbar {
   align-items: end;
 }
 
-/* ---------- Table ---------- */
+/* ================= Table: the directory fills in ================= */
 .table-wrap {
   overflow: auto;
   margin-top: 16px;
@@ -558,17 +754,40 @@ th {
   white-space: nowrap;
 }
 
+tbody tr {
+  animation: row-in 0.5s var(--ease) both;
+  transition: background 0.2s ease, box-shadow 0.25s ease;
+}
+
+tbody tr:nth-child(1) { animation-delay: 0.25s; }
+tbody tr:nth-child(2) { animation-delay: 0.31s; }
+tbody tr:nth-child(3) { animation-delay: 0.37s; }
+tbody tr:nth-child(4) { animation-delay: 0.43s; }
+tbody tr:nth-child(5) { animation-delay: 0.49s; }
+tbody tr:nth-child(6) { animation-delay: 0.55s; }
+tbody tr:nth-child(7) { animation-delay: 0.61s; }
+tbody tr:nth-child(8) { animation-delay: 0.67s; }
+tbody tr:nth-child(n + 9) { animation-delay: 0.73s; }
+
 tbody tr:last-child td {
   border-bottom: 0;
 }
 
+/* a hovered person: sky edge appears and the name steps in */
 tbody tr:hover {
   background: #f6f9fd;
+  box-shadow: inset 3px 0 0 var(--sky);
 }
 
 td:first-child {
   color: var(--navy-deep);
   font-weight: 600;
+  transition: color 0.2s ease, padding-left 0.25s var(--ease);
+}
+
+tbody tr:hover td:first-child {
+  color: var(--blue);
+  padding-left: 18px;
 }
 
 td small {
@@ -578,20 +797,47 @@ td small {
   font-weight: 400;
 }
 
+/* status badges: active people get a live, pulsing dot */
 .status {
-  display: inline-block;
-  padding: 4px 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 12px 4px 10px;
   border-radius: 999px;
   background: #e3f4ea;
   color: #1f6b41;
   font-size: 12px;
   font-weight: 700;
   text-transform: capitalize;
+  animation: pop-in 0.45s var(--spring) both;
+}
+
+.status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ping-green 2.4s ease-out 1s infinite;
 }
 
 .status.inactive {
   background: #e8edf4;
   color: #4b5d73;
+}
+
+.status.inactive::before {
+  animation: none;
+}
+
+/* row actions stay quiet until the row is hovered or focused */
+td .text-button {
+  opacity: 0.6;
+}
+
+tbody tr:hover .text-button,
+tbody tr:focus-within .text-button {
+  opacity: 1;
 }
 
 .text-button {
@@ -603,11 +849,17 @@ td small {
   font: inherit;
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, opacity 0.2s ease, transform 0.2s var(--spring);
 }
 
 .text-button:hover:not(:disabled) {
   background: var(--field);
   color: var(--navy-deep);
+  transform: translateY(-1px);
+}
+
+.text-button:active:not(:disabled) {
+  transform: scale(0.94);
 }
 
 .text-button:disabled {
@@ -619,9 +871,11 @@ td small {
   color: var(--danger);
 }
 
+/* delete warns before you click: the button trembles once on hover */
 .text-button.danger:hover:not(:disabled) {
   background: #fdeceb;
   color: var(--danger);
+  animation: tremble 0.35s ease 1;
 }
 
 .empty {
@@ -630,7 +884,153 @@ td small {
   color: var(--muted);
 }
 
-/* ---------- Responsive ---------- */
+/* ================= Keyframes ================= */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes number-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* the ID badge sways gently, as if hanging from a lanyard */
+@keyframes badge-swing {
+  0%,
+  100% {
+    transform: rotate(8deg);
+  }
+  50% {
+    transform: rotate(2deg);
+  }
+}
+
+@keyframes ping {
+  0% {
+    box-shadow: 0 0 0 0 rgb(95 208 140 / 65%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 9px rgb(95 208 140 / 0%);
+  }
+}
+
+@keyframes ping-green {
+  0% {
+    box-shadow: 0 0 0 0 rgb(45 138 87 / 55%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgb(45 138 87 / 0%);
+  }
+}
+
+@keyframes tick-pop {
+  from {
+    transform: scale(0) rotate(-40deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes ring-green {
+  0% {
+    box-shadow: 0 0 0 0 rgb(45 138 87 / 55%);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgb(45 138 87 / 0%);
+  }
+}
+
+@keyframes tremble {
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+  50% {
+    transform: translateX(2px) rotate(1deg);
+  }
+  75% {
+    transform: translateX(-1px);
+  }
+}
+
+@keyframes load {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+/* ================= Responsive ================= */
 @media (max-width: 850px) {
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -648,6 +1048,10 @@ td small {
   .filters label:first-child {
     flex: 1;
   }
+
+  .search-label input:focus {
+    min-width: 0;
+  }
 }
 
 @media (max-width: 560px) {
@@ -664,6 +1068,10 @@ td small {
     align-items: flex-start;
     flex-direction: column;
     padding: 22px 20px;
+  }
+
+  .page-heading::after {
+    display: none;
   }
 
   .page-heading h1 {
@@ -688,14 +1096,52 @@ td small {
   .panel {
     padding: 16px;
   }
+
+  /* no hover on touch screens, so keep row actions fully visible */
+  td .text-button {
+    opacity: 1;
+  }
 }
 
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .page-heading,
+  .page-heading::after,
+  .page-heading h1,
+  .page-heading .muted,
+  .eyebrow::before,
+  .heading-actions > *,
+  .primary-button:disabled::after,
+  .panel,
+  .summary-card,
+  .summary-card strong,
+  .error,
+  .success,
+  .success::before,
+  .form-grid > *,
+  tbody tr,
+  .status,
+  .status::before,
+  .text-button.danger:hover:not(:disabled) {
+    animation: none;
+  }
+
   .primary-button,
+  .primary-button::before,
   .secondary-button,
+  .panel,
+  .summary-card,
+  .summary-card::after,
   .form-grid input,
   .form-grid select,
-  .form-grid textarea {
+  .form-grid textarea,
+  .form-grid label,
+  .filters input,
+  .filters select,
+  .search-label input,
+  .text-button,
+  tbody tr,
+  td:first-child {
     transition: none;
   }
 }

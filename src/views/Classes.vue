@@ -334,6 +334,8 @@ onMounted(async () => {
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   display: grid;
   gap: 20px;
@@ -344,7 +346,7 @@ onMounted(async () => {
   font-variant-numeric: tabular-nums;
 }
 
-/* ---------- Banner ---------- */
+/* ================= Banner ================= */
 .page-header {
   position: relative;
   display: flex;
@@ -354,8 +356,9 @@ onMounted(async () => {
   padding: 26px 28px;
   border-radius: 14px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
+  animation: drop-in 0.6s var(--ease) both;
 }
 
 .page-header::before {
@@ -366,8 +369,26 @@ onMounted(async () => {
   pointer-events: none;
 }
 
+/* timetable hour-lines drift slowly behind the heading */
+.page-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 40%;
+  background:
+    repeating-linear-gradient(90deg, rgb(143 196 245 / 14%) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(0deg, rgb(143 196 245 / 10%) 0 1px, transparent 1px 26px);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 75%);
+  mask-image: linear-gradient(90deg, transparent, #000 75%);
+  animation: hours-drift 14s linear infinite;
+  pointer-events: none;
+}
+
 .page-header > * {
   position: relative;
+  z-index: 1;
 }
 
 .page-header h1 {
@@ -377,6 +398,7 @@ onMounted(async () => {
   font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.01em;
+  animation: rise 0.7s var(--ease) 0.1s both;
 }
 
 .eyebrow {
@@ -391,6 +413,7 @@ onMounted(async () => {
   margin: 6px 0 0;
   color: rgb(255 255 255 / 80%);
   font-size: 14px;
+  animation: rise 0.7s var(--ease) 0.2s both;
 }
 
 .heading-side {
@@ -409,27 +432,52 @@ onMounted(async () => {
   background: rgb(143 196 245 / 16%);
   color: #d6e9fb;
   font-size: 13px;
+  animation: pop-in 0.6s var(--spring) 0.25s both;
 }
 
 .count-chip strong {
+  display: inline-block;
+  color: #fff;
   font-family: 'Fraunces', Georgia, serif;
   font-size: 26px;
   font-weight: 600;
   line-height: 1;
-  color: #fff;
+  animation: number-in 0.7s var(--ease) 0.45s both;
 }
 
 .header-button {
+  position: relative;
   border: 1px solid rgb(255 255 255 / 28%);
   background: rgb(255 255 255 / 12%);
   color: #fff;
+  animation: pop-in 0.55s var(--spring) 0.33s both;
 }
 
 .header-button:hover:not(:disabled) {
   background: rgb(255 255 255 / 22%);
+  transform: translateY(-2px);
 }
 
-/* ---------- Panels and filters ---------- */
+/* refresh in progress: a small spinner replaces the hover state */
+.header-button:disabled {
+  padding-right: 38px;
+}
+
+.header-button:disabled::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 13px;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border: 2px solid rgb(255 255 255 / 35%);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ================= Panels ================= */
 .panel {
   padding: 22px;
   border: 1px solid var(--line);
@@ -438,9 +486,46 @@ onMounted(async () => {
   box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
 }
 
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.loading {
+  text-align: center;
+  animation: breathe 1.4s ease-in-out infinite;
+}
+
+.inline-error {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid var(--danger);
+  border-radius: 6px;
+  background: #fdeceb;
+  color: var(--danger);
+  font-size: 13px;
+  animation: shake 0.45s ease both;
+}
+
+/* ================= Add / edit form: opens like a drawer ================= */
 .form-panel {
+  position: relative;
   display: grid;
   gap: 18px;
+  border-top: 3px solid transparent;
+  transform-origin: top center;
+  animation: drawer-open 0.55s var(--ease) both;
+}
+
+.form-panel::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 0;
+  height: 3px;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, var(--blue), var(--sky));
+  animation: edge-draw 0.8s var(--ease) 0.1s both;
 }
 
 .form-heading {
@@ -468,17 +553,40 @@ onMounted(async () => {
   gap: 14px;
 }
 
+/* fields appear one after another */
+.class-form > * {
+  animation: rise 0.5s var(--ease) both;
+}
+
+.class-form > :nth-child(1) { animation-delay: 0.15s; }
+.class-form > :nth-child(2) { animation-delay: 0.2s; }
+.class-form > :nth-child(3) { animation-delay: 0.25s; }
+.class-form > :nth-child(4) { animation-delay: 0.3s; }
+.class-form > :nth-child(5) { animation-delay: 0.35s; }
+.class-form > :nth-child(6) { animation-delay: 0.4s; }
+.class-form > :nth-child(7) { animation-delay: 0.45s; }
+.class-form > :nth-child(8) { animation-delay: 0.5s; }
+.class-form > :nth-child(n + 9) { animation-delay: 0.55s; }
+
 .class-form label {
   display: grid;
   gap: 6px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
+  transition: color 0.2s ease;
 }
 
+.class-form label:has(input:focus, select:focus) {
+  color: var(--blue);
+}
+
+/* the required star pulses gently */
 .class-form label em {
+  display: inline-block;
   color: var(--danger);
   font-style: normal;
+  animation: star-pulse 2.4s ease-in-out infinite;
 }
 
 .class-form input,
@@ -491,6 +599,12 @@ onMounted(async () => {
   background: var(--field);
   color: var(--text);
   font: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
+}
+
+.class-form input:hover,
+.class-form select:hover {
+  border-color: #b6c8de;
 }
 
 .class-form input:focus,
@@ -498,7 +612,8 @@ onMounted(async () => {
   outline: none;
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 16%), 0 10px 20px -14px rgb(38 95 148 / 55%);
+  transform: translateY(-1px);
 }
 
 .form-actions {
@@ -506,13 +621,17 @@ onMounted(async () => {
   align-items: center;
   gap: 10px;
   grid-column: 1 / -1;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
 }
 
+/* ================= Filters ================= */
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   padding: 14px;
+  animation: rise 0.6s var(--ease) 0.1s both;
 }
 
 .search-field {
@@ -529,7 +648,7 @@ onMounted(async () => {
   background: var(--field);
   color: var(--text);
   font: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
 }
 
 .filters input {
@@ -546,7 +665,8 @@ onMounted(async () => {
   outline: none;
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 16%), 0 10px 20px -14px rgb(38 95 148 / 55%);
+  transform: translateY(-1px);
 }
 
 .sr-only {
@@ -558,26 +678,7 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-.muted {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.loading {
-  text-align: center;
-}
-
-.inline-error {
-  margin: 0;
-  padding: 12px 14px;
-  border-left: 3px solid var(--danger);
-  border-radius: 6px;
-  background: #fdeceb;
-  color: var(--danger);
-  font-size: 13px;
-}
-
-/* ---------- Class cards ---------- */
+/* ================= Class cards: dealt in like timetable slots ================= */
 .class-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -589,7 +690,17 @@ onMounted(async () => {
   gap: 18px;
   align-content: start;
   border-left: 4px solid var(--blue);
+  animation: deal-in 0.65s var(--spring) both;
+  transition: transform 0.3s var(--ease), box-shadow 0.3s ease, border-left-width 0.25s ease;
 }
+
+.class-grid > .class-card:nth-child(1) { animation-delay: 0.15s; }
+.class-grid > .class-card:nth-child(2) { animation-delay: 0.23s; }
+.class-grid > .class-card:nth-child(3) { animation-delay: 0.31s; }
+.class-grid > .class-card:nth-child(4) { animation-delay: 0.39s; }
+.class-grid > .class-card:nth-child(5) { animation-delay: 0.47s; }
+.class-grid > .class-card:nth-child(6) { animation-delay: 0.55s; }
+.class-grid > .class-card:nth-child(n + 7) { animation-delay: 0.63s; }
 
 .class-card.upcoming {
   border-left-color: var(--warn);
@@ -597,6 +708,12 @@ onMounted(async () => {
 
 .class-card.completed {
   border-left-color: #9aa9bb;
+}
+
+.class-card:hover {
+  transform: translateY(-6px);
+  border-left-width: 7px;
+  box-shadow: 0 24px 38px -22px rgb(17 44 73 / 60%);
 }
 
 .card-top {
@@ -620,17 +737,36 @@ onMounted(async () => {
   font-size: 22px;
   font-weight: 600;
   line-height: 1.2;
+  transition: color 0.2s ease;
 }
 
+.class-card:hover .card-heading h2 {
+  color: var(--blue);
+}
+
+/* status pills: a live class has a pulsing dot */
 .status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   flex: none;
-  padding: 5px 12px;
+  padding: 5px 12px 5px 10px;
   border-radius: 999px;
   background: #e3f4ea;
   color: #1f6b41;
   font-size: 11.5px;
   font-weight: 700;
   text-transform: capitalize;
+  animation: pop-in 0.45s var(--spring) 0.3s both;
+}
+
+.status-pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: ping-green 2.2s ease-out 1s infinite;
 }
 
 .status-pill.upcoming {
@@ -638,9 +774,18 @@ onMounted(async () => {
   color: #8a5d00;
 }
 
+/* upcoming classes pulse amber, a softer "starting soon" signal */
+.status-pill.upcoming::before {
+  animation: ping-amber 2.6s ease-out 1s infinite;
+}
+
 .status-pill.completed {
   background: #e8edf4;
   color: #4b5d73;
+}
+
+.status-pill.completed::before {
+  animation: none;
 }
 
 /* details as a label / value list */
@@ -652,6 +797,11 @@ onMounted(async () => {
   border-radius: 10px;
   background: #f6f9fd;
   font-size: 13.5px;
+  transition: background 0.25s ease;
+}
+
+.class-card:hover .class-meta {
+  background: #eef5fd;
 }
 
 .class-meta div {
@@ -670,7 +820,7 @@ onMounted(async () => {
   color: var(--text);
 }
 
-/* today's attendance */
+/* today's attendance: the gauge fills when the card appears */
 .today-head {
   display: flex;
   justify-content: space-between;
@@ -684,6 +834,7 @@ onMounted(async () => {
 }
 
 .bar {
+  position: relative;
   height: 10px;
   border-radius: 8px;
   background: #e8eef7;
@@ -691,11 +842,26 @@ onMounted(async () => {
 }
 
 .bar i {
+  position: relative;
   display: block;
   height: 100%;
   border-radius: 8px;
   background: linear-gradient(90deg, var(--sky), var(--blue));
+  transform-origin: left;
+  animation: gauge-fill 1s var(--ease) 0.6s both;
   transition: width 0.3s ease;
+}
+
+/* a highlight runs along the filled part every few seconds */
+.bar i::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -40%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 55%), transparent);
+  animation: bar-shine 3.4s ease-in-out 1.8s infinite;
 }
 
 .stats {
@@ -710,6 +876,13 @@ onMounted(async () => {
   border-radius: 10px;
   background: #fff;
   text-align: center;
+  transition: transform 0.3s var(--spring), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.stats div:hover {
+  border-color: var(--sky);
+  box-shadow: 0 12px 20px -16px rgb(38 95 148 / 55%);
+  transform: translateY(-3px);
 }
 
 .stats strong,
@@ -722,6 +895,7 @@ onMounted(async () => {
   font-family: 'Fraunces', Georgia, serif;
   font-size: 22px;
   font-weight: 600;
+  animation: number-in 0.7s var(--ease) 0.5s both;
 }
 
 .stats span {
@@ -729,7 +903,7 @@ onMounted(async () => {
   font-size: 11.5px;
 }
 
-/* ---------- Buttons ---------- */
+/* ================= Buttons ================= */
 .actions {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -745,6 +919,7 @@ onMounted(async () => {
 .primary-button,
 .secondary-button,
 .danger-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -752,22 +927,42 @@ onMounted(async () => {
   padding: 9px 14px;
   border: 0;
   border-radius: 8px;
+  overflow: hidden;
   font: inherit;
   font-size: 13.5px;
   font-weight: 700;
   text-align: center;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.2s ease, transform 0.2s var(--spring), box-shadow 0.25s ease;
 }
 
 .primary-button {
-  background: var(--blue);
+  background: linear-gradient(135deg, #2c6ba5 0%, var(--blue) 60%, #1f4f7d 100%);
   color: #fff;
+  box-shadow: 0 12px 22px -14px rgb(38 95 148 / 85%);
 }
 
-.primary-button:hover {
-  background: var(--blue-hover);
+/* light sweep on hover */
+.primary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 40%;
+  background: linear-gradient(100deg, transparent, rgb(255 255 255 / 28%), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.7s var(--ease);
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 26px -14px rgb(38 95 148 / 90%);
+}
+
+.primary-button:hover:not(:disabled)::before {
+  left: 130%;
 }
 
 .secondary-button {
@@ -777,6 +972,7 @@ onMounted(async () => {
 
 .secondary-button:hover:not(:disabled) {
   background: #d3e0f0;
+  transform: translateY(-1px);
 }
 
 .danger-button {
@@ -784,19 +980,35 @@ onMounted(async () => {
   color: var(--danger);
 }
 
+/* delete warns before you click: the button trembles once on hover */
 .danger-button:hover:not(:disabled) {
   background: #f9d3d3;
+  animation: tremble 0.35s ease 1;
 }
 
 .primary-button:active,
 .secondary-button:active:not(:disabled),
 .danger-button:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.97);
+}
+
+.primary-button:disabled::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--sky), transparent);
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  animation: load 1.1s ease-in-out infinite;
 }
 
 .secondary-button:disabled,
-.danger-button:disabled {
-  opacity: 0.6;
+.danger-button:disabled,
+.primary-button:disabled {
+  opacity: 0.65;
   cursor: wait;
 }
 
@@ -807,9 +1019,31 @@ onMounted(async () => {
   outline-offset: 2px;
 }
 
+/* ================= Empty state ================= */
 .empty-state {
   padding: 44px;
   text-align: center;
+  background:
+    radial-gradient(rgb(17 44 73 / 6%) 1px, transparent 1px) 0 0 / 16px 16px,
+    #fff;
+  animation: rise 0.6s var(--ease) 0.2s both;
+}
+
+/* an empty calendar tile that gently bobs */
+.empty-state::before {
+  content: '';
+  display: block;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 16px;
+  border: 2px solid #b6c8de;
+  border-radius: 10px;
+  background:
+    linear-gradient(var(--sky), var(--sky)) 0 0 / 100% 14px no-repeat,
+    repeating-linear-gradient(90deg, #d6e2f0 0 8px, transparent 8px 14px) 8px 26px / 40px 4px no-repeat,
+    repeating-linear-gradient(90deg, #d6e2f0 0 8px, transparent 8px 14px) 8px 38px / 28px 4px no-repeat,
+    #fff;
+  animation: bob 3s ease-in-out infinite;
 }
 
 .empty-state h2 {
@@ -818,12 +1052,220 @@ onMounted(async () => {
   font-family: 'Fraunces', Georgia, serif;
 }
 
-/* ---------- Responsive ---------- */
+/* ================= Keyframes ================= */
+@keyframes drop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* each card is dealt in with a slight tilt, like a timetable slot dropping into place */
+@keyframes deal-in {
+  0% {
+    opacity: 0;
+    transform: translateY(26px) rotate(-1.6deg) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes drawer-open {
+  from {
+    opacity: 0;
+    transform: scaleY(0.88) translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes edge-draw {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes number-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes gauge-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes bar-shine {
+  0%,
+  60% {
+    left: -40%;
+  }
+  100% {
+    left: 130%;
+  }
+}
+
+@keyframes hours-drift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 48px 0, 0 26px;
+  }
+}
+
+@keyframes ping-green {
+  0% {
+    box-shadow: 0 0 0 0 rgb(45 138 87 / 55%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgb(45 138 87 / 0%);
+  }
+}
+
+@keyframes ping-amber {
+  0% {
+    box-shadow: 0 0 0 0 rgb(201 138 0 / 50%);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgb(201 138 0 / 0%);
+  }
+}
+
+@keyframes star-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.55;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes tremble {
+  25% {
+    transform: translateX(-2px) rotate(-1deg);
+  }
+  50% {
+    transform: translateX(2px) rotate(1deg);
+  }
+  75% {
+    transform: translateX(-1px);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes load {
+  from {
+    background-position: -50% 0;
+  }
+  to {
+    background-position: 150% 0;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes shake {
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
+}
+
+/* ================= Responsive ================= */
 @media (max-width: 600px) {
   .page-header {
     display: grid;
     align-items: flex-start;
     padding: 22px 20px;
+  }
+
+  .page-header::after {
+    display: none;
   }
 
   .page-header h1 {
@@ -859,12 +1301,55 @@ onMounted(async () => {
   }
 }
 
+@media (max-width: 850px) {
+  .class-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ================= Reduced motion ================= */
 @media (prefers-reduced-motion: reduce) {
+  .page-header,
+  .page-header::after,
+  .page-header h1,
+  .lead,
+  .count-chip,
+  .count-chip strong,
+  .header-button,
+  .header-button:disabled::after,
+  .loading,
+  .inline-error,
+  .form-panel,
+  .form-panel::before,
+  .class-form > *,
+  .class-form label em,
+  .filters,
+  .class-card,
+  .status-pill,
+  .status-pill::before,
+  .bar i,
+  .bar i::after,
+  .stats strong,
+  .danger-button:hover:not(:disabled),
+  .primary-button:disabled::after,
+  .empty-state,
+  .empty-state::before {
+    animation: none;
+  }
+
+  .class-form label,
+  .class-form input,
+  .class-form select,
   .filters input,
   .filters select,
+  .class-card,
+  .card-heading h2,
+  .class-meta,
+  .stats div,
   .primary-button,
+  .primary-button::before,
   .secondary-button,
-  .bar i {
+  .danger-button {
     transition: none;
   }
 }
