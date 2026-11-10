@@ -741,9 +741,9 @@ onBeforeUnmount(() => {
 .page-heading {
   position: relative;
   padding: 26px 28px;
-  border-radius: 14px;
+  border-radius: 12px;
   color: #fff;
-  background: var(--navy);
+  background: linear-gradient(135deg, #123a62 0%, #1d507d 100%);
   overflow: hidden;
 }
 
@@ -762,23 +762,24 @@ onBeforeUnmount(() => {
 .page-heading h1 {
   margin: 0;
   color: #fff;
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 32px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: clamp(2rem, 1.8rem + 0.8vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
 }
 
 .page-heading .muted {
-  margin: 6px 0 0;
-  color: rgb(255 255 255 / 80%);
+  margin: 8px 0 0;
+  color: rgb(255 255 255 / 82%);
+  font-size: 15px;
 }
 
 .section-heading h2 {
   margin: 0;
   color: var(--navy-deep);
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 22px;
-  font-weight: 600;
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
 }
 
 .eyebrow {
@@ -797,39 +798,39 @@ onBeforeUnmount(() => {
 /* ---------- Panel and form ---------- */
 .panel {
   margin-top: 18px;
-  padding: 24px;
+  padding: 24px 26px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 8px 24px -18px rgb(17 44 73 / 45%);
+  background: #ffffff;
+  box-shadow: 0 12px 24px -22px rgb(17 44 73 / 38%);
 }
 
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .form-grid label {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   color: var(--navy-deep);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .form-grid input,
 .form-grid select,
 .form-grid textarea {
   width: 100%;
-  padding: 11px 12px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--field);
+  border-radius: 10px;
+  background: #f5f8fd;
   color: var(--text);
   font: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
 
 .form-grid textarea {
@@ -840,7 +841,7 @@ onBeforeUnmount(() => {
 .form-grid input:hover,
 .form-grid select:hover,
 .form-grid textarea:hover {
-  border-color: #b6c8de;
+  border-color: #bfd1ea;
 }
 
 .form-grid input:focus,
@@ -849,7 +850,7 @@ onBeforeUnmount(() => {
   outline: none;
   border-color: var(--blue);
   background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 18%);
+  box-shadow: 0 0 0 4px rgb(38 95 148 / 12%);
 }
 
 .wide {
@@ -865,31 +866,32 @@ onBeforeUnmount(() => {
 /* ---------- Buttons ---------- */
 .primary-button,
 .secondary-button {
-  padding: 11px 18px;
+  padding: 12px 18px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 
 .primary-button {
-  background: var(--blue);
+  background: linear-gradient(135deg, #2d6ca7 0%, var(--blue) 100%);
   color: #fff;
+  box-shadow: 0 12px 18px -14px rgb(38 95 148 / 75%);
 }
 
 .primary-button:hover:not(:disabled) {
-  background: var(--blue-hover);
+  background: linear-gradient(135deg, #235d96 0%, #214f82 100%);
 }
 
 .secondary-button {
-  background: #e3ebf6;
+  background: #edf3fb;
   color: var(--navy-deep);
 }
 
 .secondary-button:hover:not(:disabled) {
-  background: #d3e0f0;
+  background: #e1ebf9;
 }
 
 .primary-button:active:not(:disabled),
@@ -898,7 +900,7 @@ onBeforeUnmount(() => {
 }
 
 .primary-button:disabled {
-  opacity: 0.6;
+  opacity: 0.68;
   cursor: not-allowed;
 }
 
@@ -907,18 +909,20 @@ onBeforeUnmount(() => {
 .inline-success {
   margin-top: 16px;
   padding: 12px 14px;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .inline-error {
-  border-left: 3px solid var(--danger);
+  border-left: 4px solid var(--danger);
   background: #fdeceb;
   color: var(--danger);
 }
 
 .inline-success {
-  border-left: 3px solid var(--ok);
-  background: #e3f4ea;
+  border-left: 4px solid var(--ok);
+  background: #eaf7ee;
   color: #1f6b41;
 }
 

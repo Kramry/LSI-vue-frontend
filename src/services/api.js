@@ -28,6 +28,29 @@ function showErrorToast(message) {
   }))
 }
 
+function sanitizeErrorMessage(rawMessage, fallback = 'Something went wrong.') {
+  const text = typeof rawMessage === 'string' ? rawMessage.trim() : ''
+  if (!text) return fallback
+
+  const normalized = text
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!normalized) return fallback
+
+  const cssLikePattern = /(?:@media|@import|@font-face|::before|::after|\*\s*\{|\*::before|\b--[a-z-]+\s*:|\b(?:rgb|rgba|hsl|hsla)\(|#(?:[0-9a-f]{3,8})\b)/i
+  const hasHtmlLikeContent = /(?:<!doctype|<html|<body|<style|<script)/i.test(text)
+  const looksLikeCss = cssLikePattern.test(normalized)
+  const looksLikeStackTrace = /(?:database error|fatal error|warning|exception|traceback)/i.test(normalized) && (looksLikeCss || normalized.length > 220)
+
+  if (hasHtmlLikeContent || looksLikeCss || looksLikeStackTrace) {
+    return fallback
+  }
+
+  return normalized
+}
+
 function redirectToLogin() {
   if (window.location.pathname === '/login') return
   const redirect = `${window.location.pathname}${window.location.search}`
@@ -96,10 +119,13 @@ async function request(path, options, canRefresh, silent) {
       ? `The analytics server returned an invalid response (HTTP ${response.status}).`
       : `The server returned an invalid response (${response.status}).`
     if (responseTextPreview && !isMarkupOrStylesheet) {
-      message = `${responseTextPreview}${/HTTP [0-9]+/.test(responseTextPreview) ? '' : ` (HTTP ${response.status})`}`
+      message = sanitizeErrorMessage(
+        `${responseTextPreview}${/HTTP [0-9]+/.test(responseTextPreview) ? '' : ` (HTTP ${response.status})`}`,
+        message
+      )
     }
     const error = new ApiError(
-      message,
+      sanitizeErrorMessage(message, 'The server returned an invalid response.'),
       response.status
     )
     if (!silent) showErrorToast(error.message)
@@ -128,7 +154,7 @@ async function request(path, options, canRefresh, silent) {
     }
 
     const error = new ApiError(
-      payload.message || `Request failed (${response.status}).`,
+      sanitizeErrorMessage(payload.message, `Request failed (${response.status}).`),
       response.status,
       payload.errors || {}
     )
