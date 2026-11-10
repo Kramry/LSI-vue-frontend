@@ -1,6 +1,17 @@
 import { API_BASE_URL } from '../config'
 
 let csrfToken = ''
+let accessToken = window.sessionStorage.getItem('smarttrack_access_token') || ''
+let refreshPromise = null
+
+function saveAccessToken(token) {
+  accessToken = token
+  if (token) {
+    window.sessionStorage.setItem('smarttrack_access_token', token)
+  } else {
+    window.sessionStorage.removeItem('smarttrack_access_token')
+  }
+}
 
 export class ApiError extends Error {
   constructor(message, status = 0, errors = {}) {
@@ -23,11 +34,14 @@ function redirectToLogin() {
   window.location.assign(`/login?redirect=${encodeURIComponent(redirect)}`)
 }
 
-export async function apiRequest(path, options = {}) {
+async function request(path, options, canRefresh, silent) {
   const method = (options.method || 'GET').toUpperCase()
   const urlPath = path.startsWith('/') ? path : `/${path}`
   const headers = new Headers(options.headers)
   headers.set('Accept', 'application/json')
+  if (accessToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken}`)
+  }
 
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   let body = options.body
@@ -39,7 +53,9 @@ export async function apiRequest(path, options = {}) {
   }
 
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-    if (!csrfToken) await getSession()
+    if (!csrfToken) {
+      await request('/session', {}, false, true)
+    }
     if (csrfToken) headers.set('X-CSRF-Token', csrfToken)
   }
 
@@ -54,7 +70,7 @@ export async function apiRequest(path, options = {}) {
     })
   } catch {
     const error = new ApiError('The server could not be reached. Check your connection and try again.')
-    showErrorToast(error.message)
+    if (!silent) showErrorToast(error.message)
     throw error
   }
 
@@ -86,27 +102,56 @@ export async function apiRequest(path, options = {}) {
       message,
       response.status
     )
-    showErrorToast(error.message)
+    if (!silent) showErrorToast(error.message)
     throw error
   }
 
   const data = payload.data && typeof payload.data === 'object' ? payload.data : {}
   if (typeof data.csrf === 'string') csrfToken = data.csrf
+  if (typeof data.access_token === 'string') saveAccessToken(data.access_token)
 
   if (!response.ok || payload.ok !== true) {
+    if (response.status === 401 && canRefresh && accessToken
+      && !['/login', '/refresh', '/session'].includes(urlPath)) {
+      try {
+        await refreshAccessToken()
+        return request(path, options, false, silent)
+      } catch (refreshError) {
+        saveAccessToken('')
+      }
+    }
+
     const error = new ApiError(
       payload.message || `Request failed (${response.status}).`,
       response.status,
       payload.errors || {}
     )
-    if (response.status === 401 && !['/login', '/session'].includes(urlPath)) {
+    if (response.status === 401 && !['/login', '/session', '/refresh'].includes(urlPath)) {
       redirectToLogin()
     }
-    showErrorToast(error.message)
+    if (!silent) showErrorToast(error.message)
     throw error
   }
 
   return payload
+}
+
+export function apiRequest(path, options = {}) {
+  return request(path, options, true, false)
+}
+
+async function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = request('/refresh', {
+      method: 'POST',
+      body: {}
+    }, false, true)
+      .then((response) => response.data)
+      .finally(() => {
+        refreshPromise = null
+      })
+  }
+  return refreshPromise
 }
 
 export function apiGet(path) {
@@ -124,7 +169,19 @@ export function apiFileUrl(path) {
 
 export async function getSession() {
   const response = await apiRequest('/session')
-  return response.data
+  if (response.data.authenticated) return response.data
+
+  try {
+    await refreshAccessToken()
+  } catch (reason) {
+    if (!(reason instanceof ApiError) || ![401, 403].includes(reason.status)) {
+      throw reason
+    }
+    return response.data
+  }
+
+  const refreshedSession = await apiRequest('/session')
+  return refreshedSession.data
 }
 
 export async function login(username, password) {
@@ -150,6 +207,7 @@ export async function register(profile) {
 export async function logout() {
   const response = await apiRequest('/logout', { method: 'POST', body: {} })
   csrfToken = ''
+  saveAccessToken('')
   return response.data
 }
 
