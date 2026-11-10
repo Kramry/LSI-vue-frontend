@@ -28,6 +28,11 @@ export function apiRequest<T = Record<string, unknown>>(
 export function apiGet<T = Record<string, unknown>>(path: string): Promise<ApiResponse<T>>
 export function apiPost<T = Record<string, unknown>>(path: string, body: unknown): Promise<ApiResponse<T>>
 export function apiFileUrl(path: string): string
+export interface DownloadFileOptions {
+  filename?: string
+  openInNewTab?: boolean
+}
+export function downloadFile(path: string, options?: DownloadFileOptions): Promise<{ fileUrl: string; fileName: string; blob: Blob }>
 export function getSession(): Promise<SessionData>
 export function login(username: string, password: string): Promise<SessionData>
 export function register(profile: Record<string, string>): Promise<{ registered: true }>

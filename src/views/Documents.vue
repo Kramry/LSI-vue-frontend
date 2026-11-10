@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { apiFileUrl, apiGet, apiPost, getSession } from '../services/api'
+import { apiFileUrl, apiGet, apiPost, downloadFile, getSession } from '../services/api'
 
 interface DocumentRecord {
   document_id: number
@@ -85,6 +85,14 @@ async function load() {
     error.value = reason instanceof Error ? reason.message : 'Unable to load documents.'
   } finally {
     loading.value = false
+  }
+}
+
+async function openProtectedFile(path: string, fileName: string, openInNewTab = false) {
+  try {
+    await downloadFile(path, { filename: fileName, openInNewTab })
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : 'Unable to open the requested file.'
   }
 }
 
@@ -350,7 +358,7 @@ onMounted(async () => {
                 </td>
                 <td><span class="access">{{ item.access_level }}</span></td>
                 <td class="actions">
-                  <a class="text-button" :href="apiFileUrl(`/documents/${item.document_id}`)" target="_blank" rel="noopener">Download</a>
+                  <button type="button" class="text-button" @click="openProtectedFile(`/documents/${item.document_id}`, `document-${item.document_id}.pdf`, true)">Download</button>
                   <template v-if="data?.can_review_documents && item.trainee_id && item.review_status === 'pending'">
                     <button class="text-button approve" :disabled="busyId === item.document_id" @click="review(item, 'approved')">Approve</button>
                     <button class="text-button reject" :disabled="busyId === item.document_id" @click="review(item, 'rejected')">Reject</button>

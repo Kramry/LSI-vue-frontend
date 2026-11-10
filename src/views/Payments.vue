@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { apiFileUrl, apiGet, apiPost, getSession } from '../services/api'
+import { apiFileUrl, apiGet, apiPost, downloadFile, getSession } from '../services/api'
 
 type PaymentRecord = Record<string, string | number | null>
 interface PaymentData {
@@ -76,6 +76,14 @@ function selectView(nextView: string) {
   view.value = nextView
   notice.value = ''
   load()
+}
+
+async function openProtectedFile(path: string, fileName: string, openInNewTab = false) {
+  try {
+    await downloadFile(path, { filename: fileName, openInNewTab })
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : 'Unable to open the requested file.'
+  }
 }
 
 function editFee(fee: PaymentRecord) {
@@ -258,7 +266,7 @@ onMounted(async () => {
     </header>
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
     <p v-if="notice" class="inline-success" role="status">{{ notice }}</p>
-    <p v-if="lastReceiptId" class="receipt-ready"><a :href="apiFileUrl(`/payments/receipt/${lastReceiptId}`)" target="_blank" rel="noopener">Open / print the official receipt PDF</a></p>
+    <p v-if="lastReceiptId" class="receipt-ready"><button type="button" class="receipt-link" @click="openProtectedFile(`/payments/receipt/${lastReceiptId}`, `receipt-${lastReceiptId}.pdf`, true)">Open / print the official receipt PDF</button></p>
 
     <nav v-if="isStaff" class="tabs" aria-label="Payment sections">
       <button v-for="tab in tabs" :key="tab.id" :class="{ active: view === tab.id }" @click="selectView(tab.id)">{{ tab.label }}</button>
@@ -299,7 +307,7 @@ onMounted(async () => {
       <section class="panel section">
         <h2>Payment history</h2>
         <div class="table-wrap"><table><thead><tr><th>Date</th><th>Fee</th><th>Amount</th><th>Method</th><th>Reference</th><th>Receipt</th></tr></thead>
-          <tbody><tr v-for="payment in data.payments || []" :key="String(payment.payment_id)"><td>{{ payment.payment_date }}</td><td>{{ payment.fee_name }}</td><td>{{ money(payment.amount) }}</td><td>{{ payment.method || '—' }}</td><td>{{ payment.reference_number || '—' }}</td><td><a v-if="payment.receipt_number" :href="apiFileUrl(`/payments/receipt/${payment.payment_id}`)" target="_blank" rel="noopener">{{ payment.receipt_number }}</a><span v-else>Reversal</span></td></tr><tr v-if="!data.payments?.length"><td colspan="6" class="empty">No payments recorded.</td></tr></tbody>
+          <tbody><tr v-for="payment in data.payments || []" :key="String(payment.payment_id)"><td>{{ payment.payment_date }}</td><td>{{ payment.fee_name }}</td><td>{{ money(payment.amount) }}</td><td>{{ payment.method || '—' }}</td><td>{{ payment.reference_number || '—' }}</td><td><button v-if="payment.receipt_number" type="button" class="text-button inline-text-button" @click="openProtectedFile(`/payments/receipt/${payment.payment_id}`, `${payment.receipt_number}.pdf`, true)">{{ payment.receipt_number }}</button><span v-else>Reversal</span></td></tr><tr v-if="!data.payments?.length"><td colspan="6" class="empty">No payments recorded.</td></tr></tbody>
         </table></div>
       </section>
     </template>
@@ -322,13 +330,13 @@ onMounted(async () => {
         <section class="panel section">
           <h2>Payment proofs awaiting review</h2>
           <div class="table-wrap"><table><thead><tr><th>Trainee</th><th>Fee</th><th>Amount</th><th>Method</th><th>Reference</th><th>Date</th><th>Proof</th><th>Review</th></tr></thead>
-            <tbody><tr v-for="proof in data.pending_proofs || []" :key="String(proof.proof_id)"><td>{{ proof.trainee_name }}</td><td>{{ proof.fee_name }}</td><td>{{ money(proof.amount) }}</td><td>{{ proof.method }}</td><td>{{ proof.reference_number }}</td><td>{{ proof.payment_date }}</td><td><a :href="apiFileUrl(`/payments/proof/${proof.proof_id}`)" target="_blank" rel="noopener">View proof</a></td><td class="actions"><button class="text-button approve" :disabled="busy" @click="reviewProof(proof, 'verified')">Verify</button><button class="text-button reject" :disabled="busy" @click="reviewProof(proof, 'rejected')">Reject</button></td></tr><tr v-if="!data.pending_proofs?.length"><td colspan="8" class="empty">No payment proofs pending verification.</td></tr></tbody>
+            <tbody><tr v-for="proof in data.pending_proofs || []" :key="String(proof.proof_id)"><td>{{ proof.trainee_name }}</td><td>{{ proof.fee_name }}</td><td>{{ money(proof.amount) }}</td><td>{{ proof.method }}</td><td>{{ proof.reference_number }}</td><td>{{ proof.payment_date }}</td><td><button type="button" class="text-button inline-text-button" @click="openProtectedFile(`/payments/proof/${proof.proof_id}`, `proof-${proof.proof_id}.pdf`, true)">View proof</button></td><td class="actions"><button class="text-button approve" :disabled="busy" @click="reviewProof(proof, 'verified')">Verify</button><button class="text-button reject" :disabled="busy" @click="reviewProof(proof, 'rejected')">Reject</button></td></tr><tr v-if="!data.pending_proofs?.length"><td colspan="8" class="empty">No payment proofs pending verification.</td></tr></tbody>
           </table></div>
         </section>
         <section class="panel section">
           <h2>Recent ledger entries</h2>
           <div class="table-wrap"><table><thead><tr><th>Date</th><th>Trainee</th><th>Fee</th><th>Type</th><th>Amount</th><th>Receipt</th><th>Action</th></tr></thead>
-            <tbody><tr v-for="payment in data.recent_payments || []" :key="String(payment.payment_id)"><td>{{ payment.payment_date }}</td><td>{{ payment.trainee_name }}</td><td>{{ payment.fee_name }}</td><td>{{ payment.entry_type }}</td><td>{{ money(payment.amount) }}</td><td><a v-if="payment.receipt_number" :href="apiFileUrl(`/payments/receipt/${payment.payment_id}`)" target="_blank" rel="noopener">{{ payment.receipt_number }}</a><span v-else>—</span></td><td><button v-if="payment.entry_type === 'payment'" class="text-button reject" @click="reversePayment(payment)">Reverse</button></td></tr><tr v-if="!data.recent_payments?.length"><td colspan="7" class="empty">No ledger entries.</td></tr></tbody>
+            <tbody><tr v-for="payment in data.recent_payments || []" :key="String(payment.payment_id)"><td>{{ payment.payment_date }}</td><td>{{ payment.trainee_name }}</td><td>{{ payment.fee_name }}</td><td>{{ payment.entry_type }}</td><td>{{ money(payment.amount) }}</td><td><button v-if="payment.receipt_number" type="button" class="text-button inline-text-button" @click="openProtectedFile(`/payments/receipt/${payment.payment_id}`, `${payment.receipt_number}.pdf`, true)">{{ payment.receipt_number }}</button><span v-else>—</span></td><td><button v-if="payment.entry_type === 'payment'" class="text-button reject" @click="reversePayment(payment)">Reverse</button></td></tr><tr v-if="!data.recent_payments?.length"><td colspan="7" class="empty">No ledger entries.</td></tr></tbody>
           </table></div>
         </section>
       </template>
@@ -375,7 +383,7 @@ onMounted(async () => {
           <label>From<input v-model="startDate" type="date" required></label><label>To<input v-model="endDate" type="date" required></label>
           <label>Report<select v-model="reportType"><option value="collections">Collections and bond transactions</option><option value="outstanding">Outstanding balances</option></select></label>
           <button class="primary-button">Apply</button>
-          <a class="secondary-button" :href="reportExportUrl">Export CSV</a><a class="secondary-button" :href="reportPdfUrl" target="_blank" rel="noopener">Print / PDF</a>
+          <button type="button" class="secondary-button" @click="openProtectedFile(reportExportUrl, `payments-report-${startDate}-to-${endDate}.csv`, false)">Export CSV</button><button type="button" class="secondary-button" @click="openProtectedFile(reportPdfUrl, `payments-report-${startDate}-to-${endDate}.pdf`, true)">Print / PDF</button>
         </form>
         <section class="kpi-grid">
           <article class="kpi"><span>Today's collection</span><strong>{{ money(data.summary?.daily_collection) }}</strong></article><article class="kpi"><span>Outstanding balance</span><strong>{{ money(data.summary?.outstanding) }}</strong></article><article class="kpi"><span>Bonds held</span><strong>{{ money(data.summary?.bonds_held) }}</strong></article><article class="kpi"><span>Refunds issued today</span><strong>{{ money(data.summary?.refunds_issued) }}</strong></article>
@@ -784,6 +792,7 @@ onMounted(async () => {
   animation: ping-blue 2.4s ease-out 1s infinite;
 }
 
+.receipt-ready button,
 .receipt-ready a {
   color: var(--blue);
   font-weight: 700;
@@ -792,6 +801,15 @@ onMounted(async () => {
   transition: background-size 0.35s var(--ease), color 0.2s ease;
 }
 
+.receipt-ready button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.receipt-ready button:hover,
 .receipt-ready a:hover {
   color: var(--navy-deep);
   background-size: 100% 2px;
@@ -1165,6 +1183,12 @@ td a:hover {
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s ease, color 0.2s ease, transform 0.2s var(--spring);
+}
+
+.inline-text-button {
+  padding: 0;
+  background: none;
+  font: inherit;
 }
 
 .text-button:hover:not(:disabled) {

@@ -167,6 +167,56 @@ export function apiFileUrl(path) {
   return `${API_BASE_URL}${urlPath}`
 }
 
+export async function downloadFile(path, options = {}) {
+  const urlPath = path.startsWith('/') ? path : `/${path}`
+  const response = await fetch(`${API_BASE_URL}${urlPath}`, {
+    method: 'GET',
+    credentials: 'include',
+    headers: { Accept: '*/*' }
+  })
+
+  if (!response.ok) {
+    let message = `The server could not fetch the requested file (${response.status}).`
+    try {
+      const payload = await response.json()
+      if (payload?.message) message = payload.message
+    } catch {
+      try {
+        const text = await response.text()
+        if (text) message = text.replace(/\s+/g, ' ').trim().slice(0, 180)
+      } catch {
+        // ignore secondary parsing errors
+      }
+    }
+    throw new Error(message)
+  }
+
+  const blob = await response.blob()
+  const fileUrl = URL.createObjectURL(blob)
+  const fileName = options.filename || path.split('/').pop() || 'download'
+
+  if (options.openInNewTab) {
+    const popup = window.open(fileUrl, '_blank', 'noopener,noreferrer')
+    if (!popup) {
+      URL.revokeObjectURL(fileUrl)
+      throw new Error('Your browser blocked the file preview popup. Please allow pop-ups and try again.')
+    }
+    return { fileUrl, fileName, blob }
+  }
+
+  const anchor = document.createElement('a')
+  anchor.href = fileUrl
+  anchor.download = fileName
+  anchor.rel = 'noopener noreferrer'
+  anchor.style.display = 'none'
+  document.body.appendChild(anchor)
+  anchor.click()
+  anchor.remove()
+
+  setTimeout(() => URL.revokeObjectURL(fileUrl), 500)
+  return { fileUrl, fileName, blob }
+}
+
 export async function getSession() {
   const response = await apiRequest('/session')
   if (response.data.authenticated) return response.data

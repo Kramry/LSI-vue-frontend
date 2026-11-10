@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, type CSSProperties } from 'vue'
-import { apiFileUrl, apiGet, apiPost, getSession } from '../services/api'
+import { apiFileUrl, apiGet, apiPost, downloadFile, getSession } from '../services/api'
 
 type Row = Record<string, string | number | boolean | null | undefined>
 interface Template {
@@ -135,6 +135,14 @@ onBeforeUnmount(() => {
   if (templateFilePreviewUrl.value) URL.revokeObjectURL(templateFilePreviewUrl.value)
   if (logoPreviewUrl.value) URL.revokeObjectURL(logoPreviewUrl.value)
 })
+
+async function openProtectedFile(path: string, fileName: string, openInNewTab = false) {
+  try {
+    await downloadFile(path, { filename: fileName, openInNewTab })
+  } catch (reason) {
+    error.value = reason instanceof Error ? reason.message : 'Unable to open the requested file.'
+  }
+}
 
 function previewFieldStyle(field: LayoutField): CSSProperties {
   const layout = fieldLayout[field]
@@ -873,7 +881,7 @@ onMounted(async () => {
                 <td>{{ item.issue_date }}</td>
                 <td><span class="pill" :class="String(item.status || '').toLowerCase()">{{ item.status }}</span></td>
                 <td class="row-actions">
-                  <a v-if="item.status === 'issued'" :href="apiFileUrl(`/certificates/${item.certificate_id}/download`)" target="_blank" rel="noopener">Download PDF</a>
+                  <button v-if="item.status === 'issued'" type="button" class="text-button" @click="openProtectedFile(`/certificates/${item.certificate_id}/download`, `certificate-${item.certificate_id}.pdf`, true)">Download PDF</button>
                   <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)">Verify</button>
                   <span v-if="item.status !== 'issued'" class="muted">Available after signing</span>
                 </td>
@@ -944,7 +952,7 @@ onMounted(async () => {
                   <button v-if="item.status === 'draft' && item.certificate_id" class="text-button" @click="resubmitCertificate(item)">Resubmit for signatures</button>
                   <small v-if="item.signature_rejection_remarks" class="rejection-note">{{ item.signature_rejection_remarks }}</small>
 
-                  <a v-if="item.status === 'issued'" :href="apiFileUrl(`/certificates/${item.certificate_id}/download`)" target="_blank" rel="noopener">Download</a>
+                  <button v-if="item.status === 'issued'" type="button" class="text-button" @click="openProtectedFile(`/certificates/${item.certificate_id}/download`, `certificate-${item.certificate_id}.pdf`, true)">Download</button>
                   <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)">Verify</button>
                   <button v-if="item.status === 'issued'" class="text-button danger" @click="revoke(item)">Revoke</button>
                 </td>
