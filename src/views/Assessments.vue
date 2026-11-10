@@ -907,23 +907,31 @@ onBeforeUnmount(() => {
 /* ---------- Messages ---------- */
 .inline-error,
 .inline-success {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  width: fit-content;
+  max-width: min(100%, 820px);
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
+  line-height: 1.55;
 }
 
 .inline-error {
-  border-left: 4px solid var(--danger);
-  background: #fdeceb;
-  color: var(--danger);
+  border-left-width: 3px;
+  border-color: rgb(196 77 68 / 18%);
+  background: #fff5f3;
+  color: #a3332b;
 }
 
 .inline-success {
-  border-left: 4px solid var(--ok);
-  background: #eaf7ee;
-  color: #1f6b41;
+  border-left-width: 3px;
+  border-color: rgb(25 121 77 / 18%);
+  background: #f1faf4;
+  color: #1a6b4b;
 }
 
 /* ---------- Table ---------- */
