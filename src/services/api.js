@@ -110,6 +110,12 @@ async function request(path, options, canRefresh, silent) {
   if (typeof data.csrf === 'string') csrfToken = data.csrf
   if (typeof data.access_token === 'string') saveAccessToken(data.access_token)
 
+  const isAuthenticationFailure = response.status === 401
+    || payload.ok === false && (
+      payload.authenticated === false
+      || /sign in|not authenticated|session expired|login required/i.test(String(payload.message || ''))
+    )
+
   if (!response.ok || payload.ok !== true) {
     if (response.status === 401 && canRefresh && accessToken
       && !['/login', '/refresh', '/session'].includes(urlPath)) {
@@ -126,7 +132,7 @@ async function request(path, options, canRefresh, silent) {
       response.status,
       payload.errors || {}
     )
-    if (response.status === 401 && !['/login', '/session', '/refresh'].includes(urlPath)) {
+    if (isAuthenticationFailure && !['/login', '/session', '/refresh'].includes(urlPath)) {
       redirectToLogin()
     }
     if (!silent) showErrorToast(error.message)

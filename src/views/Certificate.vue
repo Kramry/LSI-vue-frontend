@@ -173,6 +173,41 @@ function money(value: unknown) {
   return String(value ?? '')
 }
 
+const ic: Record<string, string> = {
+  refresh: '<path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 4v5h-5"/>',
+  back: '<path d="M19 12H5M12 19l-7-7 7-7"/>',
+  pen: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/>',
+  undo: '<path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-15-6.7L3 13"/>',
+  review: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-4"/>',
+  shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>',
+  file: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2"/>',
+  layers: '<path d="M12 2l10 5-10 5L2 7z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>',
+  users: '<path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"/>',
+  userCheck: '<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11l2 2 4-4"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  award: '<circle cx="12" cy="8" r="6"/><path d="M15.5 13.5L17 22l-5-3-5 3 1.5-8.5"/>',
+  check: '<path d="M20 6L9 17l-5-5"/>',
+  x: '<path d="M18 6L6 18M6 6l12 12"/>',
+  send: '<path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/>',
+  download: '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/>',
+  ban: '<circle cx="12" cy="12" r="10"/><path d="M4.9 4.9l14.2 14.2"/>',
+  zap: '<path d="M13 2L3 14h9l-1 8 10-12h-9z"/>',
+  external: '<path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6M10 14L21 3"/>',
+  trash: '<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6M10 11v6M14 11v6"/>',
+  eraser: '<path d="M7 21h13"/><path d="M5.5 13.5l8-8a2 2 0 012.8 0l3.2 3.2a2 2 0 010 2.8l-8 8H8.5l-3-3a2 2 0 010-3z"/>',
+  save: '<path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  alert: '<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  checkCircle: '<path d="M22 11.1V12a10 10 0 11-5.9-9.1"/><path d="M22 4L12 14l-3-3"/>',
+  rotate: '<path d="M23 4v6h-6"/><path d="M20.5 15a9 9 0 11-2.1-9.4L23 10"/>',
+  inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.5-6.9A2 2 0 0016.8 4H7.2a2 2 0 00-1.7 1.1z"/>',
+}
+
+function pct(value: unknown) {
+  const n = Number(value)
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0
+}
+
 function safeError(reason: unknown, fallback: string) {
   return reason instanceof Error ? reason.message : fallback
 }
@@ -540,16 +575,16 @@ onMounted(async () => {
   <div class="page">
     <header class="page-heading">
       <div>
-        <p class="eyebrow">SMARTTRACK / CERTIFICATES</p>
+        <p class="eyebrow"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.award"/>SMARTTRACK / CERTIFICATES</p>
         <h1>{{ mode === 'signing' ? 'Certificates to sign' : mode === 'settings' ? 'Certificate settings' : isTrainee ? 'My certificates' : 'Certificate eligibility' }}</h1>
         <p class="muted">{{ mode === 'signing' ? 'Review the certificate PDF before signing or returning it to staff.' : mode === 'settings' ? 'Configure eligibility, certificate templates, document requirements, and signatories.' : isTrainee ? 'Track eligibility and download issued certificates.' : 'Review eligibility and track certificates through signing and issuance.' }}</p>
       </div>
-      <button class="secondary-button" :disabled="loading" @click="reload">Refresh</button>
+      <button class="secondary-button" :class="{ spin: loading }" :disabled="loading" @click="reload"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.refresh"/>Refresh</button>
     </header>
 
-    <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
-    <p v-if="notice" class="inline-success" role="status">{{ notice }}</p>
-    <p v-if="loading" class="muted loading">Loading certificate data…</p>
+    <p v-if="error" class="inline-error" role="alert"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.alert"/><span>{{ error }}</span></p>
+    <p v-if="notice" class="inline-success" role="status"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.checkCircle"/><span>{{ notice }}</span></p>
+    <p v-if="loading" class="muted loading"><span class="spinner" aria-hidden="true"></span>Loading certificate data…</p>
 
     <!-- ===================== SIGNING ===================== -->
     <template v-if="!loading && mode === 'signing'">
@@ -559,7 +594,7 @@ onMounted(async () => {
             <h2>{{ selected.certificate_number }}</h2>
             <p class="muted">{{ selected.trainee_name }} · {{ selected.program_name }} · {{ selected.class_name }}</p>
           </div>
-          <button class="secondary-button" @click="selected = null">← Back to queue</button>
+          <button class="secondary-button" @click="selected = null"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.back"/>Back to queue</button>
         </div>
 
         <div class="signing-layout">
@@ -570,14 +605,14 @@ onMounted(async () => {
               <h3>Sign this certificate</h3>
               <p class="muted">Confirm your password to apply your signature.</p>
               <label>Password confirmation<input v-model="password" type="password" autocomplete="current-password" required></label>
-              <button class="primary-button" :disabled="busy">{{ busy ? 'Signing…' : 'Sign certificate' }}</button>
+              <button class="primary-button" :disabled="busy"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.pen"/>{{ busy ? 'Signing…' : 'Sign certificate' }}</button>
             </form>
 
             <form class="side-card reject-form" @submit.prevent="rejectSignature">
               <h3>Return to staff</h3>
               <p class="muted">Explain what needs to be corrected.</p>
               <label>Remarks<textarea v-model.trim="rejectionRemarks" maxlength="1000" rows="3" required></textarea></label>
-              <button class="danger-button" :disabled="busy">Reject / return</button>
+              <button class="danger-button" :disabled="busy"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.undo"/>Reject / return</button>
             </form>
           </aside>
         </div>
@@ -586,10 +621,10 @@ onMounted(async () => {
       <section v-else class="panel">
         <div class="section-heading">
           <div>
-            <h2>Assigned certificates</h2>
+            <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.pen"/></span>Assigned certificates</h2>
             <p class="muted">Open a certificate to review the PDF and sign it.</p>
           </div>
-          <span class="count-badge">{{ certificates.length }} waiting</span>
+          <span class="count-badge"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.clock"/>{{ certificates.length }} waiting</span>
         </div>
         <div class="table-wrap">
           <table>
@@ -602,9 +637,9 @@ onMounted(async () => {
                 <td>{{ item.trainee_name }}</td>
                 <td>{{ item.program_name }} / {{ item.class_name }}</td>
                 <td>{{ item.completion_date }}</td>
-                <td class="end"><button class="text-button" @click="openSigning(item)">Review PDF &amp; sign</button></td>
+                <td class="end"><button class="text-button" @click="openSigning(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.pen"/>Review PDF &amp; sign</button></td>
               </tr>
-              <tr v-if="!certificates.length"><td colspan="5" class="empty">No certificates currently assigned to you.</td></tr>
+              <tr v-if="!certificates.length"><td colspan="5" class="empty"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.inbox"/><span>No certificates currently assigned to you.</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -615,11 +650,11 @@ onMounted(async () => {
     <template v-else-if="!loading && mode === 'settings' && isAdmin">
       <nav class="jump-nav" aria-label="Settings sections">
         <button
-          v-for="item in [['sec-eligibility', '1  Eligibility'], ['sec-template', '2  Template'], ['sec-versions', '3  Versions'], ['sec-signatories', '4  Signatories']]"
+          v-for="item in [['sec-eligibility', '1  Eligibility', 'shield'], ['sec-template', '2  Template', 'file'], ['sec-versions', '3  Versions', 'layers'], ['sec-signatories', '4  Signatories', 'users']]"
           :key="item[0]"
           type="button"
           @click="$el.querySelector('#' + item[0])?.scrollIntoView({ behavior: 'smooth', block: 'start' })"
-        >{{ item[1] }}</button>
+        ><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic[item[2]]"/>{{ item[1] }}</button>
       </nav>
 
       <!-- Eligibility and template share one form and one save button -->
@@ -627,7 +662,7 @@ onMounted(async () => {
         <section id="sec-eligibility" class="panel">
           <div class="section-heading">
             <div>
-              <h2>Eligibility requirements</h2>
+              <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.shield"/></span>Eligibility requirements</h2>
               <p class="muted">What a trainee must complete before a certificate can be issued.</p>
             </div>
           </div>
@@ -642,14 +677,14 @@ onMounted(async () => {
         <section id="sec-template" class="panel">
           <div class="section-heading">
             <div>
-              <h2>Certificate template</h2>
+              <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.file"/></span>Certificate template</h2>
               <p class="muted">Files and logos are limited to 5 MB and stored privately.</p>
             </div>
           </div>
 
           <p v-if="editingTemplateVersion !== null" class="edit-banner" role="status">
             Editing v{{ editingTemplateVersion }} as a new draft. Saving creates a new version; existing versions are preserved.
-            <button type="button" class="text-button" @click="cancelTemplateEdit">Cancel edit</button>
+            <button type="button" class="text-button" @click="cancelTemplateEdit"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.x"/>Cancel edit</button>
           </p>
 
           <div class="template-layout">
@@ -709,7 +744,7 @@ onMounted(async () => {
                     <h3>Live certificate preview</h3>
                     <p class="muted">Updates as you edit, using sample trainee details.</p>
                   </div>
-                  <a v-if="templateForm.mode === 'upload' && uploadedBackgroundUrl && !uploadedBackgroundIsImage" class="text-button" :href="uploadedBackgroundUrl" target="_blank" rel="noopener">Open PDF background</a>
+                  <a v-if="templateForm.mode === 'upload' && uploadedBackgroundUrl && !uploadedBackgroundIsImage" class="text-button" :href="uploadedBackgroundUrl" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.external"/>Open PDF background</a>
                 </div>
 
                 <div v-if="templateForm.mode === 'upload'" class="certificate-preview-sheet uploaded-preview" :style="{ '--preview-accent': templateForm.accent_color, fontFamily: previewFont }">
@@ -738,7 +773,7 @@ onMounted(async () => {
 
           <div class="form-footer">
             <p class="muted">Saves the eligibility requirements and the template together.</p>
-            <button class="primary-button" :disabled="busy">{{ busy ? 'Saving…' : 'Save template and eligibility settings' }}</button>
+            <button class="primary-button" :disabled="busy"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.save"/>{{ busy ? 'Saving…' : 'Save template and eligibility settings' }}</button>
           </div>
         </section>
       </form>
@@ -746,10 +781,10 @@ onMounted(async () => {
       <section id="sec-versions" class="panel">
         <div class="section-heading">
           <div>
-            <h2>Template versions</h2>
+            <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.layers"/></span>Template versions</h2>
             <p class="muted">Previous versions are kept so issued certificates never change.</p>
           </div>
-          <span class="count-badge">{{ settingData.certificate_template_versions?.length || 0 }} versions</span>
+          <span class="count-badge"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.layers"/>{{ settingData.certificate_template_versions?.length || 0 }} versions</span>
         </div>
         <div class="table-wrap">
           <table>
@@ -760,13 +795,13 @@ onMounted(async () => {
                 <td class="cap">{{ item.mode }}</td>
                 <td><span class="pill" :class="Number(item.is_active) ? 'issued' : 'draft'">{{ Number(item.is_active) ? 'Active' : 'Draft' }}</span></td>
                 <td class="row-actions">
-                  <button class="text-button" :disabled="busy" @click="editTemplate(item)">Edit</button>
-                  <button v-if="!Number(item.is_active)" class="text-button" :disabled="busy" @click="activateTemplate(item.template_id)">Create active version from this</button>
-                  <a v-if="item.file_path" class="text-button" :href="apiFileUrl(`/certificate-templates/${item.template_id}/file`)" target="_blank" rel="noopener">Preview file</a>
-                  <button v-if="!Number(item.is_active)" class="text-button danger" :disabled="busy" @click="deleteTemplate(item)">Delete</button>
+                  <button class="text-button" :disabled="busy" @click="editTemplate(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.pen"/>Edit</button>
+                  <button v-if="!Number(item.is_active)" class="text-button" :disabled="busy" @click="activateTemplate(item.template_id)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.zap"/>Create active version from this</button>
+                  <a v-if="item.file_path" class="text-button" :href="apiFileUrl(`/certificate-templates/${item.template_id}/file`)" target="_blank" rel="noopener"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.external"/>Preview file</a>
+                  <button v-if="!Number(item.is_active)" class="text-button danger" :disabled="busy" @click="deleteTemplate(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.trash"/>Delete</button>
                 </td>
               </tr>
-              <tr v-if="!settingData.certificate_template_versions?.length"><td colspan="4" class="empty">No template versions.</td></tr>
+              <tr v-if="!settingData.certificate_template_versions?.length"><td colspan="4" class="empty"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.inbox"/><span>No template versions.</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -775,7 +810,7 @@ onMounted(async () => {
       <section id="sec-signatories" class="panel">
         <div class="section-heading">
           <div>
-            <h2>{{ signatoryId ? 'Edit signatory' : 'Add signatory' }}</h2>
+            <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.users"/></span>{{ signatoryId ? 'Edit signatory' : 'Add signatory' }}</h2>
             <p class="muted">People who sign certificates before they are issued.</p>
           </div>
         </div>
@@ -799,14 +834,14 @@ onMounted(async () => {
             </div>
             <p class="hint">Or draw a signature on the transparent pad.</p>
             <canvas ref="signatureCanvas" class="signature-pad" width="700" height="180" @pointerdown="startDrawing" @pointermove="draw" @pointerup="stopDrawing" @pointercancel="stopDrawing" @pointerleave="stopDrawing"></canvas>
-            <button type="button" class="secondary-button" @click="clearCanvas">Clear signature pad</button>
+            <button type="button" class="secondary-button" @click="clearCanvas"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.eraser"/>Clear signature pad</button>
           </div>
 
           <div class="form-footer">
             <span></span>
             <div class="actions">
-              <button v-if="signatoryId" type="button" class="secondary-button" @click="resetSignatory">Cancel</button>
-              <button class="primary-button" :disabled="busy">{{ busy ? 'Saving…' : signatoryId ? 'Save signatory' : 'Add signatory' }}</button>
+              <button v-if="signatoryId" type="button" class="secondary-button" @click="resetSignatory"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.x"/>Cancel</button>
+              <button class="primary-button" :disabled="busy"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.save"/>{{ busy ? 'Saving…' : signatoryId ? 'Save signatory' : 'Add signatory' }}</button>
             </div>
           </div>
         </form>
@@ -822,11 +857,11 @@ onMounted(async () => {
                 <td><span class="pill" :class="Number(item.is_active) ? 'issued' : 'draft'">{{ Number(item.is_active) ? 'Active' : 'Inactive' }}</span></td>
                 <td>{{ item.x_position }}, {{ item.y_position }}</td>
                 <td class="row-actions">
-                  <button class="text-button" @click="editSignatory(item)">Edit</button>
-                  <button v-if="Number(item.is_active)" class="text-button danger" @click="deactivateSignatory(item)">Deactivate</button>
+                  <button class="text-button" @click="editSignatory(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.pen"/>Edit</button>
+                  <button v-if="Number(item.is_active)" class="text-button danger" @click="deactivateSignatory(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.ban"/>Deactivate</button>
                 </td>
               </tr>
-              <tr v-if="!settingData.signatories?.length"><td colspan="6" class="empty">No signatories configured.</td></tr>
+              <tr v-if="!settingData.signatories?.length"><td colspan="6" class="empty"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.inbox"/><span>No signatories configured.</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -838,7 +873,7 @@ onMounted(async () => {
       <section class="panel">
         <div class="section-heading">
           <div>
-            <h2>My certificate eligibility</h2>
+            <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.userCheck"/></span>My certificate eligibility</h2>
             <p class="muted">Your progress toward each certificate.</p>
           </div>
         </div>
@@ -850,13 +885,13 @@ onMounted(async () => {
             <tbody>
               <tr v-for="item in data.eligibility || []" :key="String(item.eligibility_id)">
                 <td class="strong">{{ item.program_name }} / {{ item.class_name }}</td>
-                <td>{{ item.attendance_percentage }}%</td>
+                <td><div class="meter-cell"><span>{{ item.attendance_percentage }}%</span><span class="meter"><i :style="{ width: pct(item.attendance_percentage) + '%' }"></i></span></div></td>
                 <td>{{ item.documents_approved }} / {{ item.documents_required }}</td>
                 <td>{{ item.assessments_completed }} / {{ item.assessments_required }}</td>
                 <td><span class="pill" :class="Number(item.is_eligible) ? 'issued' : 'pending'">{{ Number(item.is_eligible) ? 'Eligible' : 'Requirements incomplete' }}</span></td>
                 <td><span class="pill" :class="String(item.approval_status || '').toLowerCase()">{{ item.approval_status }}</span></td>
               </tr>
-              <tr v-if="!data.eligibility?.length"><td colspan="6" class="empty">No eligibility records available.</td></tr>
+              <tr v-if="!data.eligibility?.length"><td colspan="6" class="empty"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.inbox"/><span>No eligibility records available.</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -865,7 +900,7 @@ onMounted(async () => {
       <section class="panel">
         <div class="section-heading">
           <div>
-            <h2>Issued certificates</h2>
+            <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.award"/></span>Issued certificates</h2>
             <p class="muted">Download your certificate once it has been signed.</p>
           </div>
         </div>
@@ -881,12 +916,12 @@ onMounted(async () => {
                 <td>{{ item.issue_date }}</td>
                 <td><span class="pill" :class="String(item.status || '').toLowerCase()">{{ item.status }}</span></td>
                 <td class="row-actions">
-                  <button v-if="item.status === 'issued'" type="button" class="text-button" @click="openProtectedFile(`/certificates/${item.certificate_id}/download`, `certificate-${item.certificate_id}.pdf`, true)">Download PDF</button>
-                  <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)">Verify</button>
+                  <button v-if="item.status === 'issued'" type="button" class="text-button" @click="openProtectedFile(`/certificates/${item.certificate_id}/download`, `certificate-${item.certificate_id}.pdf`, true)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.download"/>Download PDF</button>
+                  <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.shield"/>Verify</button>
                   <span v-if="item.status !== 'issued'" class="muted">Available after signing</span>
                 </td>
               </tr>
-              <tr v-if="!certificates.length"><td colspan="5" class="empty">No certificates issued yet.</td></tr>
+              <tr v-if="!certificates.length"><td colspan="5" class="empty"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.inbox"/><span>No certificates issued yet.</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -896,16 +931,16 @@ onMounted(async () => {
     <!-- ===================== STAFF RECORDS ===================== -->
     <template v-else-if="!loading && mode === 'records' && isStaff">
       <section class="stats-grid" aria-label="Certificate figures">
-        <article class="stat"><span>Eligible</span><strong>{{ data.certificate_stats?.eligible || 0 }}</strong></article>
-        <article class="stat"><span>Awaiting approval</span><strong>{{ data.certificate_stats?.pending || 0 }}</strong></article>
-        <article class="stat"><span>Awaiting signatures</span><strong>{{ data.certificate_stats?.signing || 0 }}</strong></article>
-        <article class="stat"><span>Issued</span><strong>{{ data.certificate_stats?.issued || 0 }}</strong></article>
+        <article class="stat"><em class="stat-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.userCheck"/></em><span>Eligible</span><strong>{{ data.certificate_stats?.eligible || 0 }}</strong></article>
+        <article class="stat"><em class="stat-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.clock"/></em><span>Awaiting approval</span><strong>{{ data.certificate_stats?.pending || 0 }}</strong></article>
+        <article class="stat"><em class="stat-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.pen"/></em><span>Awaiting signatures</span><strong>{{ data.certificate_stats?.signing || 0 }}</strong></article>
+        <article class="stat"><em class="stat-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.award"/></em><span>Issued</span><strong>{{ data.certificate_stats?.issued || 0 }}</strong></article>
       </section>
 
       <section class="panel">
         <div class="section-heading">
           <div>
-            <h2>Eligibility and certificate status</h2>
+            <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.review"/></span>Eligibility and certificate status</h2>
             <p class="muted">Review eligible trainees; approved eligibility queues the certificate for assigned signatories.</p>
           </div>
           <input v-model="filter" class="search" placeholder="Search trainee, program, status" aria-label="Search eligibility records">
@@ -930,7 +965,7 @@ onMounted(async () => {
               <tr v-for="item in filteredCertificates" :key="String(item.eligibility_id)">
                 <td><span class="strong">{{ item.trainee_name }}</span><small>{{ item.trainee_number }}</small></td>
                 <td>{{ item.program_name }} / {{ item.class_name }}</td>
-                <td>{{ item.attendance_percentage }}%</td>
+                <td><div class="meter-cell"><span>{{ item.attendance_percentage }}%</span><span class="meter"><i :style="{ width: pct(item.attendance_percentage) + '%' }"></i></span></div></td>
                 <td>{{ item.documents_approved }} / {{ item.documents_required }}</td>
                 <td>{{ item.assessments_completed }} / {{ item.assessments_required }}</td>
                 <td>
@@ -940,24 +975,24 @@ onMounted(async () => {
                 <td><span class="pill" :class="String(item.status || '').toLowerCase()">{{ item.status }}</span></td>
                 <td>{{ item.certificate_number || '—' }}<small>{{ item.issue_date || '' }}</small></td>
                 <td class="row-actions">
-                  <button v-if="!item.certificate_id && item.is_eligible" class="text-button" @click="recalculate(item)">Recalculate</button>
+                  <button v-if="!item.certificate_id && item.is_eligible" class="text-button" @click="recalculate(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.refresh"/>Recalculate</button>
 
                   <template v-if="!item.certificate_id && item.is_eligible && item.approval_status === 'pending'">
                     <textarea v-model="reviewForm(item.eligibility_id).reason" placeholder="Reason if rejecting"></textarea>
-                    <button class="text-button approve" @click="reviewEligibility(item, 'approved')">Approve</button>
-                    <button class="text-button danger" @click="reviewEligibility(item, 'rejected')">Reject</button>
+                    <button class="text-button approve" @click="reviewEligibility(item, 'approved')"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.check"/>Approve</button>
+                    <button class="text-button danger" @click="reviewEligibility(item, 'rejected')"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.x"/>Reject</button>
                   </template>
 
-                  <button v-if="!item.certificate_id && item.approval_status === 'approved'" class="text-button" @click="issue(item)">Queue certificate</button>
-                  <button v-if="item.status === 'draft' && item.certificate_id" class="text-button" @click="resubmitCertificate(item)">Resubmit for signatures</button>
+                  <button v-if="!item.certificate_id && item.approval_status === 'approved'" class="text-button" @click="issue(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.send"/>Queue certificate</button>
+                  <button v-if="item.status === 'draft' && item.certificate_id" class="text-button" @click="resubmitCertificate(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.rotate"/>Resubmit for signatures</button>
                   <small v-if="item.signature_rejection_remarks" class="rejection-note">{{ item.signature_rejection_remarks }}</small>
 
-                  <button v-if="item.status === 'issued'" type="button" class="text-button" @click="openProtectedFile(`/certificates/${item.certificate_id}/download`, `certificate-${item.certificate_id}.pdf`, true)">Download</button>
-                  <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)">Verify</button>
-                  <button v-if="item.status === 'issued'" class="text-button danger" @click="revoke(item)">Revoke</button>
+                  <button v-if="item.status === 'issued'" type="button" class="text-button" @click="openProtectedFile(`/certificates/${item.certificate_id}/download`, `certificate-${item.certificate_id}.pdf`, true)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.download"/>Download</button>
+                  <button v-if="item.status === 'issued'" class="text-button" @click="verifyCertificate(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.shield"/>Verify</button>
+                  <button v-if="item.status === 'issued'" class="text-button danger" @click="revoke(item)"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.ban"/>Revoke</button>
                 </td>
               </tr>
-              <tr v-if="!filteredCertificates.length"><td colspan="9" class="empty">No eligibility records match your search.</td></tr>
+              <tr v-if="!filteredCertificates.length"><td colspan="9" class="empty"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.inbox"/><span>No eligibility records match your search.</span></td></tr>
             </tbody>
           </table>
         </div>
@@ -968,10 +1003,10 @@ onMounted(async () => {
     <section v-if="verifiedRecord" class="panel verification-panel" aria-live="polite">
       <div class="section-heading">
         <div>
-          <h2>Certificate verification</h2>
+          <h2><span class="h-ico"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.shield"/></span>Certificate verification</h2>
           <p class="muted">{{ verifiedRecord.certificate.certificate_number }} · {{ verifiedRecord.certificate.trainee_name }}</p>
         </div>
-        <button class="secondary-button" @click="verifiedRecord = null">Close</button>
+        <button class="secondary-button" @click="verifiedRecord = null"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.x"/>Close</button>
       </div>
       <p class="verification-result" :class="{ valid: verifiedRecord.integrity_valid, invalid: !verifiedRecord.integrity_valid }">{{ verifiedRecord.integrity_valid ? 'Valid — stored signature hashes match the certificate data.' : 'Tampered or incomplete — one or more signature hashes do not match, or no signatures are recorded.' }}</p>
       <p class="verify-meta"><strong>Status:</strong> {{ verifiedRecord.certificate.status }} · <strong>Issued:</strong> {{ verifiedRecord.certificate.issue_date || '—' }}</p>
@@ -985,7 +1020,7 @@ onMounted(async () => {
               <td>{{ signature.signed_at }}</td>
               <td><span class="pill" :class="signature.hash_valid ? 'issued' : 'revoked'">{{ signature.hash_valid ? 'Valid' : 'Tampered' }}</span></td>
             </tr>
-            <tr v-if="!verifiedRecord.signatories.length"><td colspan="4" class="empty">No completed signatures found.</td></tr>
+            <tr v-if="!verifiedRecord.signatories.length"><td colspan="4" class="empty"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true" v-html="ic.inbox"/><span>No completed signatures found.</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -2798,4 +2833,289 @@ td.end {
     transition: none;
   }
 }
+
+/* =====================================================================
+   Icons and extra polish (added layer)
+   ===================================================================== */
+.ico {
+  flex: none;
+  width: 1.15em;
+  height: 1.15em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.35s var(--spring);
+}
+
+/* buttons carry an icon next to the label */
+.secondary-button,
+.primary-button,
+.danger-button,
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.text-button {
+  gap: 6px;
+}
+
+.text-button .ico {
+  width: 1em;
+  height: 1em;
+}
+
+.primary-button .ico {
+  position: relative;
+  z-index: 1;
+}
+
+.primary-button:hover:not(:disabled) .ico {
+  transform: translateX(2px) scale(1.14);
+}
+
+.secondary-button:hover:not(:disabled) .ico,
+.danger-button:hover:not(:disabled) .ico,
+.text-button:hover:not(:disabled) .ico {
+  transform: scale(1.2) rotate(-8deg);
+}
+
+.text-button.approve:hover .ico {
+  transform: scale(1.3) rotate(0deg);
+}
+
+.text-button.danger:hover .ico {
+  animation: ico-shake 0.4s ease both;
+}
+
+/* refresh icon spins while data loads */
+.spin .ico {
+  animation: ico-spin 0.9s linear infinite;
+}
+
+/* heading icons */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.eyebrow .ico {
+  width: 15px;
+  height: 15px;
+  animation: ico-float 3.2s ease-in-out infinite;
+}
+
+.section-heading h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.h-ico {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #e9f2fc, #d3e5f8);
+  box-shadow: inset 0 0 0 1px rgb(38 95 148 / 14%);
+  color: var(--blue);
+  transition: transform 0.4s var(--spring), background 0.3s ease;
+}
+
+.h-ico .ico {
+  width: 20px;
+  height: 20px;
+}
+
+.panel:hover .h-ico {
+  transform: rotate(-6deg) scale(1.07);
+  background: linear-gradient(135deg, #dcecfb, #bfdaf5);
+}
+
+/* messages */
+.inline-error,
+.inline-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.inline-error .ico,
+.inline-success .ico {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+}
+
+.inline-success .ico {
+  animation: tick-pop 0.6s var(--spring) both;
+}
+
+/* loading */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #d3e0f0;
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: ico-spin 0.8s linear infinite;
+}
+
+/* stat cards get a coloured icon tile */
+.stat {
+  padding-right: 66px;
+}
+
+.stat-ico {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #e8f1fb;
+  color: var(--blue);
+  font-style: normal;
+  transition: transform 0.4s var(--spring);
+}
+
+.stat-ico .ico {
+  width: 21px;
+  height: 21px;
+  animation: ico-float 3.2s ease-in-out infinite;
+}
+
+.stat:nth-child(4n + 2) .stat-ico { background: #e6f3fd; color: #2f7db8; }
+.stat:nth-child(4n + 3) .stat-ico { background: #fbf0d3; color: #a86f00; }
+.stat:nth-child(4n) .stat-ico { background: #e3f4ea; color: var(--ok); }
+.stat:nth-child(2) .stat-ico .ico { animation-delay: 0.3s; }
+.stat:nth-child(3) .stat-ico .ico { animation-delay: 0.6s; }
+.stat:nth-child(4) .stat-ico .ico { animation-delay: 0.9s; }
+
+.stat:hover .stat-ico {
+  transform: translateY(-3px) rotate(-8deg) scale(1.1);
+}
+
+/* search field icon (specificity beats the :focus background shorthand) */
+.page .search:not(:disabled) {
+  padding-left: 38px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6f82' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 18px;
+}
+
+/* jump navigation */
+.jump-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.jump-nav button:hover .ico {
+  transform: translateY(-2px) scale(1.15);
+}
+
+/* count badges */
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-badge .ico {
+  width: 14px;
+  height: 14px;
+}
+
+/* attendance progress bar */
+.meter-cell {
+  display: grid;
+  gap: 5px;
+  min-width: 72px;
+}
+
+.meter {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e3ebf6;
+}
+
+.meter i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), var(--sky));
+  transform-origin: left;
+  animation: meter-grow 0.9s var(--ease) 0.2s both;
+}
+
+/* empty states */
+td.empty .ico {
+  display: block;
+  width: 36px;
+  height: 36px;
+  margin: 0 auto 8px;
+  color: #a9bbd0;
+  animation: ico-float 3.2s ease-in-out infinite;
+}
+
+/* extra keyframes */
+@keyframes ico-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes ico-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes ico-shake {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-14deg) scale(1.2); }
+  75% { transform: rotate(14deg) scale(1.2); }
+}
+
+@keyframes meter-grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spin .ico,
+  .spinner,
+  .eyebrow .ico,
+  .stat-ico .ico,
+  td.empty .ico,
+  .meter i,
+  .inline-success .ico,
+  .text-button.danger:hover .ico {
+    animation: none;
+  }
+
+  .ico,
+  .h-ico,
+  .stat-ico {
+    transition: none;
+  }
+}
+
 </style>
