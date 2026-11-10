@@ -50,9 +50,10 @@ send the session CSRF token in `X-CSRF-Token`.
 
 The development API base is `/api`. `.env.development` proxies it to
 `http://localhost:8000` by default. Update `API_PROXY_TARGET` there if your
-backend listens elsewhere. For production, set `VITE_API_BASE_URL` to the
-backend's `/api` URL at build time. Prefer serving the Vue app and PHP API on
-the same origin. If they use separate origins, set the backend
+backend listens elsewhere. Production builds use the backend's `/api` URL
+from `.env.production`; override `VITE_API_BASE_URL` in the deployment
+environment when deploying to a different backend. Prefer serving the Vue app
+and PHP API on the same origin. If they use separate origins, set the backend
 `SMARTTRACK_FRONTEND_ORIGIN` to the exact frontend origin. For a cross-site
 frontend, also set `SESSION_COOKIE_SAMESITE=None` and
 `SESSION_COOKIE_SECURE=true`; use HTTPS. The default cookie policy remains
