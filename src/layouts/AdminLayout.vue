@@ -24,7 +24,7 @@ const links = [
   { label: 'Attendance', to: '/attendance', roles: ['administrator', 'staff', 'instructor'] },
   { label: 'Announcements', to: '/announcements', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
   { label: 'Inquiries', to: '/inquiries', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
-  { label: 'Assessments', to: '/assessments', roles: ['administrator', 'staff', 'instructor'] },
+  { label: 'Assessments', to: '/assessments', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
   { label: 'Payments', to: '/payments', roles: ['administrator', 'staff', 'trainee'] },
   { label: 'Analytics', to: '/analytics', roles: ['administrator', 'staff', 'instructor'] },
   { label: 'Activity log', to: '/activity', roles: ['administrator', 'staff'] },
