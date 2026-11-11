@@ -1,6 +1,7 @@
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
+import AiChatAssistant from '../components/AiChatAssistant.vue'
 import { getSession, logout } from '../services/api'
 
 const router = useRouter()
@@ -27,6 +28,7 @@ const links = [
   { label: 'Assessments', to: '/assessments', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
   { label: 'Payments', to: '/payments', roles: ['administrator', 'staff', 'trainee'] },
   { label: 'Analytics', to: '/analytics', roles: ['administrator', 'staff', 'instructor'] },
+  { label: 'AI Management', to: '/ai-management', roles: ['administrator'] },
   { label: 'Activity log', to: '/activity', roles: ['administrator', 'staff'] },
   { label: 'Documents', to: '/documents', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
   { label: 'Certificates', to: '/certificates', roles: ['administrator', 'staff', 'trainee'] },
@@ -157,6 +159,7 @@ onBeforeUnmount(() => {
     <main class="main-content">
       <RouterView />
     </main>
+    <AiChatAssistant />
   </div>
 </template>
 
