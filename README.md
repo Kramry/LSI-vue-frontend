@@ -43,21 +43,25 @@ npm run build
 
 ## SmartTrack API integration
 
-The current Vue login and attendance scanner use LavaLust's existing PHP
-session. This is a better fit for this same-origin app than storing JWTs in
-browser storage: the session cookie is HTTP-only, and state-changing requests
-send the session CSRF token in `X-CSRF-Token`.
+The Vue app uses short-lived bearer access tokens kept only in memory and a
+rotating refresh token in an HTTP-only cookie. On page reload, it obtains a
+new access token through the refresh endpoint. State-changing requests send
+the CSRF token from the API session in `X-CSRF-Token`; refresh tokens are never
+stored in browser-accessible storage.
 
 The development API base is `/api`. `.env.development` proxies it to
-`http://localhost:8000` by default. Update `API_PROXY_TARGET` there if your
-backend listens elsewhere. Production builds use the backend's `/api` URL
+the local PHP API. Update `API_PROXY_TARGET` there if your backend listens
+elsewhere. Production builds use the backend's `/api` URL
 from `.env.production`; override `VITE_API_BASE_URL` in the deployment
 environment when deploying to a different backend. Prefer serving the Vue app
-and PHP API on the same origin. If they use separate origins, set the backend
-`SMARTTRACK_FRONTEND_ORIGIN` to the exact frontend origin. For a cross-site
-frontend, also set `SESSION_COOKIE_SAMESITE=None` and
-`SESSION_COOKIE_SECURE=true`; use HTTPS. The default cookie policy remains
-`SameSite=Strict`.
+and PHP API on the same origin. If they use separate origins, configure the
+backend's `SMARTTRACK_FRONTEND_URL` (or `SMARTTRACK_FRONTEND_ORIGIN`) to the
+exact frontend origin. CORS allows credentials only for that origin. The
+deployed Render frontend and API are same-site subdomains, so the default
+`SameSite=Strict` cookie policy works; HTTPS is detected from the proxy, or
+set `SESSION_COOKIE_SECURE=true` in the backend environment. If the frontend
+and API are ever hosted on different sites, use HTTPS and set
+`SESSION_COOKIE_SAMESITE=None` and `SESSION_COOKIE_SECURE=true`.
 
 ### Login and attendance endpoints
 

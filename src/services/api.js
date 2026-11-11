@@ -1,16 +1,13 @@
 import { API_BASE_URL } from '../config'
 
 let csrfToken = ''
-let accessToken = window.sessionStorage.getItem('smarttrack_access_token') || ''
+let accessToken = ''
 let refreshPromise = null
 
+window.sessionStorage.removeItem('smarttrack_access_token')
+
 function saveAccessToken(token) {
-  accessToken = token
-  if (token) {
-    window.sessionStorage.setItem('smarttrack_access_token', token)
-  } else {
-    window.sessionStorage.removeItem('smarttrack_access_token')
-  }
+  accessToken = token || ''
 }
 
 export class ApiError extends Error {
@@ -259,6 +256,7 @@ export async function getSession() {
     if (!(reason instanceof ApiError) || ![401, 403].includes(reason.status)) {
       throw reason
     }
+    saveAccessToken('')
     return response.data
   }
 
