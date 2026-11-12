@@ -423,72 +423,188 @@ onBeforeUnmount(() => {
 <template>
   <div class="page">
     <header class="page-heading">
-      <div>
-        <p class="eyebrow">SMARTTRACK / ACADEMIC RECORDS</p>
-        <h1>Assessments</h1>
-        <p class="muted">Timed assessment schedules, trainee submissions, and class compliance.</p>
+      <div class="tr-heading-main">
+        <span class="tr-heading-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 4h6a1 1 0 011 1v1H8V5a1 1 0 011-1z"/><path d="M8 6H6a1 1 0 00-1 1v13a1 1 0 001 1h12a1 1 0 001-1V7a1 1 0 00-1-1h-2"/><path d="M9 13l2 2 4-4.5"/></svg>
+        </span>
+        <div>
+          <p class="eyebrow">SMARTTRACK / ACADEMIC RECORDS</p>
+          <h1>Assessments</h1>
+          <p class="muted">Timed assessment schedules, trainee submissions, and class compliance.</p>
+        </div>
       </div>
-      <button class="secondary-button" :disabled="loading" @click="load">Refresh</button>
+      <button class="secondary-button tr-refresh" :disabled="loading" @click="load">
+        <svg :class="{ spinning: loading }" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 11-2.6-5.9"/><path d="M20 4v5h-5"/></svg>
+        {{ loading ? 'Refreshing…' : 'Refresh' }}
+      </button>
     </header>
+ 
     <p v-if="error" class="inline-error" role="alert">{{ error }}</p>
     <p v-if="notice" class="inline-success" role="status">{{ notice }}</p>
-
-    <section v-if="notifications.length" class="panel notification-panel" aria-label="Assessment notifications">
-      <h2>Assessment notifications</h2>
+ 
+    <section v-if="notifications.length" class="panel tr-notifications" aria-label="Assessment notifications">
+      <h2>
+        <span class="tr-bell" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 17V11a6 6 0 1112 0v6l1.5 2h-15z"/><path d="M10 21a2 2 0 004 0"/></svg></span>
+        Assessment notifications
+      </h2>
       <ul>
         <li v-for="item in notifications.slice(0, 5)" :key="item.notification_id">{{ item.message }}</li>
       </ul>
     </section>
-
+ 
     <template v-if="role === 'trainee'">
-      <section class="panel">
+      <!-- 1. Summary strip -->
+      <section class="tr-summary" aria-label="Assessment summary">
+        <article>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <div><strong>{{ timedAssessments.filter(i => i.submission_status === 'pending').length }}</strong><span>To do</span></div>
+        </article>
+        <article class="ok">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/></svg>
+          <div><strong>{{ timedAssessments.filter(i => i.submission_id).length }}</strong><span>Submitted</span></div>
+        </article>
+        <article class="bad">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>
+          <div><strong>{{ timedAssessments.filter(i => i.submission_status === 'not_submitted').length }}</strong><span>Missed</span></div>
+        </article>
+      </section>
+ 
+      <!-- 2. Assessment list -->
+      <section class="panel tr-list-panel">
         <div class="section-heading">
-          <div><h2>My assigned assessments</h2><p class="muted">Deadlines are checked against SmartTrack server time.</p></div>
+          <div>
+            <h2>My assigned assessments</h2>
+            <p class="muted tr-server-note">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 118 0v3"/></svg>
+              Deadlines are checked against SmartTrack server time.
+            </p>
+          </div>
         </div>
-        <p v-if="loading" class="muted">Loading assessments…</p>
-        <p v-else-if="!timedAssessments.length" class="empty">No timed assessments have been assigned to your classes.</p>
-        <div v-else class="trainee-assessments">
-          <article v-for="item in timedAssessments" :key="item.timed_assessment_id" class="timed-card">
-            <div class="timed-card-heading">
-              <div>
-                <p class="eyebrow">{{ item.assessment_type.replace('_', ' ') }} · {{ item.class_name }}</p>
+ 
+        <div v-if="loading" class="tr-skeletons" aria-label="Loading assessments">
+          <span v-for="n in 2" :key="n" class="tr-skeleton"></span>
+        </div>
+ 
+        <div v-else-if="!timedAssessments.length" class="tr-empty">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6a1 1 0 011 1v1H8V5a1 1 0 011-1z"/><path d="M8 6H6a1 1 0 00-1 1v13a1 1 0 001 1h12a1 1 0 001-1V7a1 1 0 00-1-1h-2"/></svg>
+          <p>No timed assessments have been assigned to your classes.</p>
+        </div>
+ 
+        <div v-else class="tr-cards">
+          <article
+            v-for="(item, index) in timedAssessments"
+            :key="item.timed_assessment_id"
+            class="tr-card"
+            :class="'is-' + (item.submission_status || 'pending')"
+            :style="{ animationDelay: Math.min(index, 6) * 70 + 'ms' }"
+          >
+            <!-- Card header -->
+            <div class="tr-card-head">
+              <span class="tr-type-icon" aria-hidden="true">
+                <svg v-if="item.assessment_type === 'quiz'" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2M12 17v.5"/></svg>
+                <svg v-else-if="item.assessment_type === 'examination'" viewBox="0 0 24 24"><path d="M3 8l9-4 9 4-9 4z"/><path d="M7 10.5V15c0 1.2 2.2 3 5 3s5-1.8 5-3v-4.5"/></svg>
+                <svg v-else viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+              </span>
+              <div class="tr-card-title">
                 <h3>{{ item.assessment_title }}</h3>
-                <p class="muted">Instructor: {{ item.instructor_name || 'Not assigned' }}</p>
+                <ul class="tr-chips">
+                  <li>{{ item.assessment_type.replace('_', ' ') }}</li>
+                  <li>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-6h6v6"/></svg>
+                    {{ item.class_name }}
+                  </li>
+                  <li>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4 4-6 8-6s7.2 2 8 6"/></svg>
+                    {{ item.instructor_name || 'Not assigned' }}
+                  </li>
+                </ul>
               </div>
-              <span class="status-pill" :class="item.submission_status || 'pending'">{{ (item.submission_status || 'pending').replace('_', ' ') }}</span>
+              <span class="tr-pill" :class="item.submission_status || 'pending'">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <template v-if="item.submission_status === 'on_time'"><path d="M5 12.5l4.5 4.5L19 7"/></template>
+                  <template v-else-if="item.submission_status === 'late' || item.submission_status === 'not_submitted'"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></template>
+                  <template v-else-if="item.submission_status === 'excused'"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></template>
+                  <template v-else><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></template>
+                </svg>
+                {{ (item.submission_status || 'pending').replace('_', ' ') }}
+              </span>
             </div>
-            <p v-if="item.description" class="description">{{ item.description }}</p>
-            <div class="assessment-details">
-              <p><strong>Instructions</strong><span>{{ item.instructions }}</span></p>
-              <p><strong>Starts</strong><span>{{ formatDate(item.start_at) }}</span></p>
-              <p><strong>Deadline</strong><span>{{ formatDate(item.effective_deadline || item.deadline_at) }}</span></p>
-              <p><strong>Duration</strong><span>{{ item.duration_minutes }} minutes</span></p>
-              <p v-if="item.submitted_at"><strong>Submitted</strong><span>{{ formatDate(item.submitted_at) }}</span></p>
+ 
+            <p v-if="item.description" class="tr-description">{{ item.description }}</p>
+ 
+            <!-- Timeline -->
+            <div class="tr-timeline">
+              <div>
+                <span class="tr-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4v3M17 4v3M4 9h16"/><rect x="4" y="6" width="16" height="14" rx="2"/></svg>Starts</span>
+                <strong>{{ formatDate(item.start_at) }}</strong>
+              </div>
+              <span class="tr-arrow" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h15M14 7l5 5-5 5"/></svg></span>
+              <div>
+                <span class="tr-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>Deadline</span>
+                <strong>{{ formatDate(item.effective_deadline || item.deadline_at) }}</strong>
+              </div>
+              <div>
+                <span class="tr-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M12 3v3"/><circle cx="12" cy="14" r="7"/><path d="M12 10.5V14l2 1.5"/></svg>Duration</span>
+                <strong>{{ item.duration_minutes }} minutes</strong>
+              </div>
+              <div v-if="item.submitted_at">
+                <span class="tr-label"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>Submitted</span>
+                <strong>{{ formatDate(item.submitted_at) }}</strong>
+              </div>
             </div>
-            <p v-if="item.submission_status === 'pending' && !hasStarted(item)" class="countdown">
-              Opens in: <strong>{{ formatRemaining(startSeconds(item)) }}</strong>
-            </p>
-            <p v-else-if="item.submission_status === 'pending'" class="countdown" :class="{ urgent: remainingSeconds(item) <= 60, warning: remainingSeconds(item) > 60 && remainingSeconds(item) <= 300 }">
-              Remaining time: <strong>{{ formatRemaining(remainingSeconds(item)) }}</strong>
-              <span v-if="remainingSeconds(item) <= 60"> — deadline is imminent</span>
-              <span v-else-if="remainingSeconds(item) <= 300"> — 5 minutes or less remain</span>
-            </p>
-            <p v-if="item.submission_status === 'not_submitted'" class="inline-error">
-              The submission period has ended without a submission.
-              <span v-if="item.allow_late_submission"> Late submissions are still accepted.</span>
-            </p>
-            <p v-if="item.submission_status === 'excused'" class="inline-success">
-              You are excused<span v-if="item.excuse_reason">: {{ item.excuse_reason }}</span>.
-            </p>
-            <div v-if="item.submission_id" class="submitted-result">
-              <strong>Submission recorded</strong>
-              <span v-if="item.submitted_score !== null">Score: {{ item.submitted_score }}</span>
-              <span v-if="item.result_text">{{ item.result_text }}</span>
+ 
+            <!-- Instructions -->
+            <div class="tr-instructions">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+              <div><strong>Instructions</strong><p>{{ item.instructions }}</p></div>
             </div>
+ 
+            <!-- Countdown: not yet open -->
+            <div v-if="item.submission_status === 'pending' && !hasStarted(item)" class="tr-countdown">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12M6 21h12"/><path d="M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/></svg>
+              <span>Opens in</span><strong>{{ formatRemaining(startSeconds(item)) }}</strong>
+            </div>
+ 
+            <!-- Countdown: in progress -->
+            <div
+              v-else-if="item.submission_status === 'pending'"
+              class="tr-countdown running"
+              :class="{ urgent: remainingSeconds(item) <= 60, warning: remainingSeconds(item) > 60 && remainingSeconds(item) <= 300 }"
+            >
+              <svg class="tick" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M10 3h4"/></svg>
+              <span>Remaining time</span><strong>{{ formatRemaining(remainingSeconds(item)) }}</strong>
+              <em v-if="remainingSeconds(item) <= 60">Deadline is imminent</em>
+              <em v-else-if="remainingSeconds(item) <= 300">5 minutes or less remain</em>
+              <div class="tr-bar" aria-hidden="true">
+                <i :style="{ width: Math.max(0, Math.min(100, remainingSeconds(item) / (item.duration_minutes * 60) * 100)) + '%' }"></i>
+              </div>
+            </div>
+ 
+            <!-- Status messages -->
+            <p v-if="item.submission_status === 'not_submitted'" class="tr-note bad" role="alert">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v6M12 16.5v.5"/></svg>
+              <span>The submission period has ended without a submission.<template v-if="item.allow_late_submission"> Late submissions are still accepted.</template></span>
+            </p>
+            <p v-if="item.submission_status === 'excused'" class="tr-note excused" role="status">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+              <span>You are excused<template v-if="item.excuse_reason">: {{ item.excuse_reason }}</template>.</span>
+            </p>
+ 
+            <!-- Submitted result -->
+            <div v-if="item.submission_id" class="tr-result">
+              <span class="tr-check" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg></span>
+              <div>
+                <strong>Submission recorded</strong>
+                <span v-if="item.submitted_score !== null" class="tr-score">Score: {{ item.submitted_score }}</span>
+                <span v-if="item.result_text">{{ item.result_text }}</span>
+              </div>
+            </div>
+ 
+            <!-- Submission form -->
             <form
               v-else-if="item.status === 'published' && hasStarted(item) && !item.is_excused
                 && (item.submission_status === 'pending' || (item.submission_status === 'not_submitted' && item.allow_late_submission))"
-              class="form-grid submission-form"
+              class="form-grid submission-form tr-form"
               @submit.prevent="submitTimed(item)"
             >
               <label>Score (optional, 0–100)
@@ -498,14 +614,17 @@ onBeforeUnmount(() => {
                 <textarea v-model="submissions[item.timed_assessment_id]!.result_text" rows="3" maxlength="5000" placeholder="Enter your result or response"></textarea>
               </label>
               <div class="actions wide">
-                <button class="primary-button" type="submit">Submit assessment</button>
+                <button class="primary-button tr-submit" type="submit">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7z"/></svg>
+                  Submit assessment
+                </button>
               </div>
             </form>
           </article>
         </div>
       </section>
     </template>
-
+ 
     <template v-else>
       <section v-if="role === 'administrator' || role === 'staff' || role === 'instructor'" class="panel">
         <div class="section-heading">
@@ -558,7 +677,7 @@ onBeforeUnmount(() => {
           </div>
         </form>
       </section>
-
+ 
       <section class="panel">
         <div class="section-heading">
           <div><h2>Assessment schedule</h2><p class="muted">{{ timedAssessments.length }} assessments</p></div>
@@ -587,7 +706,7 @@ onBeforeUnmount(() => {
           </table>
         </div>
       </section>
-
+ 
       <section v-if="role === 'administrator' || role === 'staff' || role === 'instructor'" class="panel">
         <div class="section-heading">
           <div><h2>Assessment compliance monitoring</h2><p class="muted">Statuses and deadlines are calculated using server time.</p></div>
@@ -660,7 +779,7 @@ onBeforeUnmount(() => {
           </table>
         </div>
       </section>
-
+ 
       <details class="panel legacy-panel">
         <summary>Existing assessment outcome records (Pass / Fail)</summary>
         <form class="form-grid" @submit.prevent="save">
@@ -708,7 +827,7 @@ onBeforeUnmount(() => {
     </template>
   </div>
 </template>
-
+ 
 <style scoped>
 .page {
   --navy: #173a60;
@@ -722,608 +841,226 @@ onBeforeUnmount(() => {
   --field: #eaf0fb;
   --ok: #2d8a57;
   --danger: #b4281f;
-
   max-width: 1450px;
   margin: auto;
   color: var(--text);
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
 }
-
-/* ---------- Headings ---------- */
-.page-heading,
-.section-heading {
-  display: flex;
-  justify-content: space-between;
-  gap: 14px;
-  align-items: flex-start;
-}
-
-.page-heading {
-  position: relative;
-  padding: 26px 28px;
-  border-radius: 12px;
-  color: #fff;
-  background: linear-gradient(135deg, #123a62 0%, #1d507d 100%);
-  overflow: hidden;
-}
-
-.page-heading::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: repeating-linear-gradient(135deg, transparent 0 120px, rgb(255 255 255 / 4%) 120px 121px);
-  pointer-events: none;
-}
-
-.page-heading > * {
-  position: relative;
-}
-
-.page-heading h1 {
-  margin: 0;
-  color: #fff;
-  font-size: clamp(2rem, 1.8rem + 0.8vw, 3rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1.08;
-}
-
-.page-heading .muted {
-  margin: 8px 0 0;
-  color: rgb(255 255 255 / 82%);
-  font-size: 15px;
-}
-
-.section-heading h2 {
-  margin: 0;
-  color: var(--navy-deep);
-  font-size: 1.7rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-}
-
-.eyebrow {
-  margin: 0 0 8px;
-  color: var(--sky);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
-
-.muted {
-  color: var(--muted);
-  font-size: 14px;
-}
-
-/* ---------- Panel and form ---------- */
-.panel {
-  margin-top: 18px;
-  padding: 24px 26px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 12px 24px -22px rgb(17 44 73 / 38%);
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.form-grid label {
-  display: grid;
-  gap: 8px;
-  color: var(--navy-deep);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.form-grid input,
-.form-grid select,
-.form-grid textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #f5f8fd;
-  color: var(--text);
-  font: inherit;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-}
-
-.form-grid textarea {
-  min-height: 96px;
-  resize: vertical;
-}
-
-.form-grid input:hover,
-.form-grid select:hover,
-.form-grid textarea:hover {
-  border-color: #bfd1ea;
-}
-
-.form-grid input:focus,
-.form-grid select:focus,
-.form-grid textarea:focus {
-  outline: none;
-  border-color: var(--blue);
-  background: #fff;
-  box-shadow: 0 0 0 4px rgb(38 95 148 / 12%);
-}
-
-.wide {
-  grid-column: 1 / -1;
-}
-
-.actions {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-/* ---------- Buttons ---------- */
-.primary-button,
-.secondary-button {
-  padding: 12px 18px;
-  border: 0;
-  border-radius: 10px;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
-}
-
-.primary-button {
-  background: linear-gradient(135deg, #2d6ca7 0%, var(--blue) 100%);
-  color: #fff;
-  box-shadow: 0 12px 18px -14px rgb(38 95 148 / 75%);
-}
-
-.primary-button:hover:not(:disabled) {
-  background: linear-gradient(135deg, #235d96 0%, #214f82 100%);
-}
-
-.secondary-button {
-  background: #edf3fb;
-  color: var(--navy-deep);
-}
-
-.secondary-button:hover:not(:disabled) {
-  background: #e1ebf9;
-}
-
-.primary-button:active:not(:disabled),
-.secondary-button:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.primary-button:disabled {
-  opacity: 0.68;
-  cursor: not-allowed;
-}
-
-/* ---------- Messages ---------- */
-.inline-error,
-.inline-success {
-  display: flex;
-  align-items: center;
-  width: fit-content;
-  max-width: min(100%, 820px);
-  margin-top: 14px;
-  padding: 10px 12px;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.55;
-}
-
-.inline-error {
-  border-left-width: 3px;
-  border-color: rgb(196 77 68 / 18%);
-  background: #fff5f3;
-  color: #a3332b;
-}
-
-.inline-success {
-  border-left-width: 3px;
-  border-color: rgb(25 121 77 / 18%);
-  background: #f1faf4;
-  color: #1a6b4b;
-}
-
-/* ---------- Table ---------- */
-.table-wrap {
-  overflow: auto;
-  margin-top: 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-th,
-td {
-  padding: 12px 14px;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-  vertical-align: top;
-}
-
-th {
-  background: var(--field);
-  color: var(--navy);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-tbody tr:hover {
-  background: #f6f9fd;
-}
-
-td small {
-  display: block;
-  margin-top: 4px;
-  color: var(--muted);
-}
-
-/* Pass / Fail pills */
-.pill {
-  display: inline-block;
-  padding: 4px 11px;
-  border-radius: 20px;
-  background: #e3f4ea;
-  color: #1f6b41;
-  font-size: 12px;
-  font-weight: 700;
-  text-transform: capitalize;
-}
-
-.pill.fail {
-  background: #fdeceb;
-  color: var(--danger);
-}
-
-.text-button {
-  padding: 4px 6px;
-  border: 0;
-  border-radius: 4px;
-  background: none;
-  color: var(--blue);
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.text-button:hover {
-  background: var(--field);
-  color: var(--navy-deep);
-}
-
-.danger {
-  color: var(--danger);
-}
-
-.text-button.danger:hover {
-  background: #fdeceb;
-  color: var(--danger);
-}
-
-.empty {
-  padding: 28px;
-  text-align: center;
-  color: var(--muted);
-}
-
-.notification-panel ul {
-  display: grid;
-  gap: 8px;
-  margin: 12px 0 0;
-  padding-left: 20px;
-  color: var(--navy-deep);
-}
-
-.trainee-assessments {
-  display: grid;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.timed-card {
-  min-width: 0;
-  padding: 20px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: linear-gradient(145deg, #fff, #f8fbff);
-}
-
-.timed-card-heading,
-.assessment-details {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.timed-card-heading h3 {
-  margin: 0;
-  color: var(--navy-deep);
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 22px;
-}
-
-.timed-card-heading .muted {
-  margin: 6px 0 0;
-}
-
-.assessment-details {
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  margin: 16px 0;
-}
-
-.assessment-details p {
-  display: grid;
-  gap: 4px;
-  min-width: min(230px, 100%);
-  margin: 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-
-.assessment-details strong {
-  color: var(--navy-deep);
-}
-
-.description {
-  margin: 14px 0 0;
-  color: var(--text);
-}
-
-.countdown {
-  display: inline-flex;
-  gap: 5px;
-  align-items: center;
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: #e7f2fc;
-  color: var(--navy);
-}
-
-.countdown.warning {
-  background: #fff3d8;
-  color: #825a00;
-}
-
-.countdown.urgent {
-  background: #fdeceb;
-  color: var(--danger);
-  animation: countdown-pulse 1s ease-in-out infinite alternate;
-}
-
-.submitted-result {
-  display: grid;
-  gap: 6px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #e3f4ea;
-  color: #1f6b41;
-}
-
-.submission-form {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
-.checkbox-label {
-  display: flex !important;
-  align-items: center;
-  gap: 10px !important;
-}
-
-.checkbox-label input {
-  width: 18px;
-  height: 18px;
-}
-
-.deadline-preview {
-  margin: 0;
-  padding: 12px;
-  border-radius: 8px;
-  background: #edf4fc;
-  color: var(--navy-deep);
-}
-
-.filter-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.filter-grid label {
-  display: grid;
-  gap: 6px;
-  color: var(--navy-deep);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.filter-grid input,
-.filter-grid select {
-  width: 100%;
-  min-width: 0;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--field);
-  color: var(--text);
-  font: inherit;
-}
-
-.filter-button {
-  align-self: end;
-}
-
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.stat-grid article {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #f8fbff;
-}
-
-.stat-grid span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.stat-grid strong {
-  color: var(--navy-deep);
-  font-size: 22px;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  padding: 5px 9px;
-  border-radius: 999px;
-  background: #edf1f7;
-  color: #475569;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.status-pill.published,
-.status-pill.on_time {
-  background: #e3f4ea;
-  color: #1f6b41;
-}
-
-.status-pill.pending {
-  background: #e7f2fc;
-  color: #265f94;
-}
-
-.status-pill.late,
-.status-pill.not_submitted {
-  background: #fdeceb;
-  color: var(--danger);
-}
-
-.status-pill.excused {
-  background: #f1eafd;
-  color: #6941a5;
-}
-
-.legacy-panel summary {
-  color: var(--navy-deep);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.export-actions {
-  flex-wrap: wrap;
-}
-
-@keyframes countdown-pulse {
-  from { box-shadow: 0 0 0 0 rgb(180 40 31 / 0%); }
-  to { box-shadow: 0 0 0 4px rgb(180 40 31 / 12%); }
-}
-
-/* ---------- Responsive ---------- */
+.page-heading, .section-heading { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; }
+.page-heading { position: relative; padding: 26px 28px; border-radius: 12px; color: #fff; background: linear-gradient(135deg, #123a62 0%, #1d507d 100%); overflow: hidden; }
+.page-heading::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(135deg, transparent 0 120px, rgb(255 255 255 / 4%) 120px 121px); pointer-events: none; }
+.page-heading > * { position: relative; }
+.page-heading h1 { margin: 0; color: #fff; font-size: clamp(2rem, 1.8rem + 0.8vw, 3rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1.08; }
+.page-heading .muted { margin: 8px 0 0; color: rgb(255 255 255 / 82%); font-size: 15px; }
+.section-heading h2 { margin: 0; color: var(--navy-deep); font-size: 1.7rem; font-weight: 800; letter-spacing: -0.03em; }
+.eyebrow { margin: 0 0 8px; color: var(--sky); font-size: 12px; font-weight: 700; letter-spacing: 0.14em; }
+.muted { color: var(--muted); font-size: 14px; }
+.panel { margin-top: 18px; padding: 24px 26px; border: 1px solid var(--line); border-radius: 12px; background: #ffffff; box-shadow: 0 12px 24px -22px rgb(17 44 73 / 38%); }
+.form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 20px; }
+.form-grid label { display: grid; gap: 8px; color: var(--navy-deep); font-size: 13px; font-weight: 700; }
+.form-grid input, .form-grid select, .form-grid textarea { width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: #f5f8fd; color: var(--text); font: inherit; transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease; }
+.form-grid textarea { min-height: 96px; resize: vertical; }
+.form-grid input:hover, .form-grid select:hover, .form-grid textarea:hover { border-color: #bfd1ea; }
+.form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus { outline: none; border-color: var(--blue); background: #fff; box-shadow: 0 0 0 4px rgb(38 95 148 / 12%); }
+.wide { grid-column: 1 / -1; }
+.actions { display: flex; gap: 10px; align-items: center; }
+.primary-button, .secondary-button { padding: 12px 18px; border: 0; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease; }
+.primary-button { background: linear-gradient(135deg, #2d6ca7 0%, var(--blue) 100%); color: #fff; box-shadow: 0 12px 18px -14px rgb(38 95 148 / 75%); }
+.primary-button:hover:not(:disabled) { background: linear-gradient(135deg, #235d96 0%, #214f82 100%); }
+.secondary-button { background: #edf3fb; color: var(--navy-deep); }
+.secondary-button:hover:not(:disabled) { background: #e1ebf9; }
+.primary-button:active:not(:disabled), .secondary-button:active:not(:disabled) { transform: translateY(1px); }
+.primary-button:disabled { opacity: 0.68; cursor: not-allowed; }
+.inline-error, .inline-success { display: flex; align-items: center; width: fit-content; max-width: min(100%, 820px); margin-top: 14px; padding: 10px 12px; border: 1px solid transparent; border-radius: 10px; font-size: 13px; font-weight: 600; line-height: 1.55; }
+.inline-error { border-left-width: 3px; border-color: rgb(196 77 68 / 18%); background: #fff5f3; color: #a3332b; }
+.inline-success { border-left-width: 3px; border-color: rgb(25 121 77 / 18%); background: #f1faf4; color: #1a6b4b; }
+.table-wrap { overflow: auto; margin-top: 16px; border: 1px solid var(--line); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { background: var(--field); color: var(--navy); font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: #f6f9fd; }
+td small { display: block; margin-top: 4px; color: var(--muted); }
+.pill { display: inline-block; padding: 4px 11px; border-radius: 20px; background: #e3f4ea; color: #1f6b41; font-size: 12px; font-weight: 700; text-transform: capitalize; }
+.pill.fail { background: #fdeceb; color: var(--danger); }
+.text-button { padding: 4px 6px; border: 0; border-radius: 4px; background: none; color: var(--blue); font: inherit; font-weight: 600; cursor: pointer; }
+.text-button:hover { background: var(--field); color: var(--navy-deep); }
+.danger { color: var(--danger); }
+.text-button.danger:hover { background: #fdeceb; color: var(--danger); }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+.submission-form { grid-template-columns: repeat(2, minmax(0, 1fr)); padding-top: 12px; border-top: 1px solid var(--line); }
+.checkbox-label { display: flex !important; align-items: center; gap: 10px !important; }
+.checkbox-label input { width: 18px; height: 18px; }
+.deadline-preview { margin: 0; padding: 12px; border-radius: 8px; background: #edf4fc; color: var(--navy-deep); }
+.filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.filter-grid label { display: grid; gap: 6px; color: var(--navy-deep); font-size: 13px; font-weight: 600; }
+.filter-grid input, .filter-grid select { width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--field); color: var(--text); font: inherit; }
+.filter-button { align-self: end; }
+.stat-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.stat-grid article { display: grid; gap: 8px; min-width: 0; padding: 14px; border: 1px solid var(--line); border-radius: 10px; background: #f8fbff; }
+.stat-grid span { color: var(--muted); font-size: 12px; }
+.stat-grid strong { color: var(--navy-deep); font-size: 22px; }
+.status-pill { display: inline-flex; align-items: center; width: fit-content; padding: 5px 9px; border-radius: 999px; background: #edf1f7; color: #475569; font-size: 11px; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+.status-pill.published, .status-pill.on_time { background: #e3f4ea; color: #1f6b41; }
+.status-pill.pending { background: #e7f2fc; color: #265f94; }
+.status-pill.late, .status-pill.not_submitted { background: #fdeceb; color: var(--danger); }
+.status-pill.excused { background: #f1eafd; color: #6941a5; }
+.legacy-panel summary { color: var(--navy-deep); font-weight: 700; cursor: pointer; }
+.export-actions { flex-wrap: wrap; }
+@keyframes countdown-pulse { from { box-shadow: 0 0 0 0 rgb(180 40 31 / 0%); } to { box-shadow: 0 0 0 4px rgb(180 40 31 / 12%); } }
 @media (max-width: 850px) {
-  .form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stat-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
+  .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-
 @media (max-width: 560px) {
-  .form-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .wide {
-    grid-column: auto;
-  }
-
-  .panel {
-    padding: 16px;
-  }
-
-  .page-heading {
-    flex-direction: column;
-    padding: 22px 20px;
-  }
-
-  .page-heading h1 {
-    font-size: 26px;
-  }
-
-  .timed-card-heading {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .filter-grid,
-  .submission-form {
-    grid-template-columns: 1fr;
-  }
-
-  .stat-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .section-heading {
-    flex-direction: column;
-  }
-
-  .export-actions {
-    width: 100%;
-  }
+  .form-grid { grid-template-columns: 1fr; }
+  .wide { grid-column: auto; }
+  .panel { padding: 16px; }
+  .page-heading { flex-direction: column; padding: 22px 20px; }
+  .page-heading h1 { font-size: 26px; }
+  .filter-grid, .submission-form { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .section-heading { flex-direction: column; }
+  .export-actions { width: 100%; }
 }
-
+ 
+/* ===== Trainee redesign ===== */
+.page svg { width: 1.1em; height: 1.1em; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+ 
+/* Header */
+.page-heading { animation: tr-drop .5s cubic-bezier(.2,.7,.2,1) both; }
+.tr-heading-main { display: flex; align-items: center; gap: 16px; }
+.tr-heading-icon { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: rgb(255 255 255 / 14%); border: 1px solid rgb(255 255 255 / 25%); }
+.tr-heading-icon svg { width: 28px; height: 28px; }
+.tr-refresh { display: inline-flex; align-items: center; gap: 8px; }
+.tr-refresh svg.spinning { animation: tr-spin .8s linear infinite; }
+ 
+.tr-notifications h2 { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 1.1rem; color: var(--navy-deep); }
+.tr-bell { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: #825a00; background: #fff3d8; }
+.tr-bell svg { transform-origin: 50% 0; animation: tr-ring 3.5s ease-in-out 1s infinite; }
+ 
+/* Summary strip */
+.tr-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.tr-summary article { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 12px; background: #fff; color: var(--blue); animation: tr-rise .5s cubic-bezier(.2,.7,.2,1) both; }
+.tr-summary article:nth-child(2) { animation-delay: .07s; }
+.tr-summary article:nth-child(3) { animation-delay: .14s; }
+.tr-summary article.ok { color: var(--ok); }
+.tr-summary article.bad { color: var(--danger); }
+.tr-summary article > svg { width: 34px; height: 34px; padding: 9px; box-sizing: content-box; border-radius: 12px; background: currentColor; }
+.tr-summary article > svg * { stroke: #fff; }
+.tr-summary strong { display: block; color: var(--navy-deep); font-size: 1.7rem; line-height: 1; }
+.tr-summary span { color: var(--muted); font-size: 13px; }
+ 
+/* List */
+.tr-list-panel .section-heading h2 { font-size: 1.5rem; }
+.tr-server-note { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; }
+.tr-cards { display: grid; gap: 18px; margin-top: 18px; }
+ 
+.tr-card {
+  position: relative; display: grid; gap: 16px; min-width: 0; padding: 22px 22px 22px 26px;
+  border: 1px solid var(--line); border-radius: 14px; background: #fff; overflow: hidden;
+  box-shadow: 0 12px 24px -22px rgb(17 44 73 / 45%);
+  animation: tr-rise .55s cubic-bezier(.2,.7,.2,1) both;
+  transition: box-shadow .25s, transform .25s;
+}
+.tr-card:hover { transform: translateY(-2px); box-shadow: 0 18px 30px -22px rgb(17 44 73 / 55%); }
+.tr-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 5px; background: var(--blue); }
+.tr-card.is-on_time::before { background: var(--ok); }
+.tr-card.is-late::before, .tr-card.is-not_submitted::before { background: var(--danger); }
+.tr-card.is-excused::before { background: #6941a5; }
+ 
+.tr-card-head { display: flex; align-items: flex-start; gap: 14px; }
+.tr-type-icon { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 13px; color: var(--blue); background: #e7f2fc; }
+.tr-type-icon svg { width: 24px; height: 24px; }
+.tr-card-title { flex: 1; min-width: 0; }
+.tr-card-title h3 { margin: 0 0 8px; color: var(--navy-deep); font-family: 'Fraunces', Georgia, serif; font-size: 22px; line-height: 1.2; }
+ 
+.tr-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.tr-chips li { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; background: #eef3fa; color: #3d5670; font-size: 12.5px; font-weight: 600; text-transform: capitalize; }
+ 
+.tr-pill { display: inline-flex; align-items: center; gap: 6px; flex: none; padding: 6px 11px; border-radius: 999px; background: #e7f2fc; color: var(--blue); font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+.tr-pill.on_time { background: #e3f4ea; color: #1f6b41; }
+.tr-pill.late, .tr-pill.not_submitted { background: #fdeceb; color: var(--danger); }
+.tr-pill.excused { background: #f1eafd; color: #6941a5; }
+ 
+.tr-description { margin: 0; color: var(--text); line-height: 1.55; }
+ 
+/* Timeline */
+.tr-timeline { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 22px; padding: 14px 16px; border-radius: 12px; background: #f6f9fd; }
+.tr-timeline > div { display: grid; gap: 3px; }
+.tr-timeline strong { color: var(--navy-deep); font-size: 14px; }
+.tr-label { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.tr-arrow { color: #9db4cb; }
+.tr-arrow svg { animation: tr-nudge 1.8s ease-in-out infinite; }
+ 
+.tr-instructions { display: flex; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px dashed #bfd1ea; color: var(--blue); }
+.tr-instructions svg { margin-top: 2px; }
+.tr-instructions strong { color: var(--navy-deep); font-size: 13px; }
+.tr-instructions p { margin: 3px 0 0; color: var(--text); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+ 
+/* Countdown */
+.tr-countdown { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 14px 16px; border-radius: 12px; background: #e7f2fc; color: var(--navy); }
+.tr-countdown svg { width: 22px; height: 22px; }
+.tr-countdown strong { font-size: 1.4rem; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.tr-countdown em { font-style: normal; font-size: 13px; font-weight: 700; }
+.tr-countdown .tick { animation: tr-tick 1s steps(2, jump-none) infinite; transform-origin: center; }
+.tr-countdown.warning { background: #fff3d8; color: #825a00; }
+.tr-countdown.urgent { background: #fdeceb; color: var(--danger); animation: countdown-pulse 1s ease-in-out infinite alternate; }
+.tr-bar { flex-basis: 100%; height: 6px; border-radius: 999px; background: rgb(0 0 0 / 8%); overflow: hidden; }
+.tr-bar i { display: block; height: 100%; border-radius: inherit; background: currentColor; transition: width 1s linear; }
+ 
+/* Notes + result */
+.tr-note { display: flex; align-items: flex-start; gap: 10px; margin: 0; padding: 12px 14px; border-radius: 12px; font-size: 14px; font-weight: 600; line-height: 1.5; }
+.tr-note.bad { background: #fff5f3; color: #a3332b; }
+.tr-note.excused { background: #f1eafd; color: #6941a5; }
+.tr-note svg { margin-top: 2px; }
+ 
+.tr-result { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border-radius: 12px; background: #e3f4ea; color: #1f6b41; }
+.tr-result > div { display: grid; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.tr-score { font-weight: 800; font-size: 1.05rem; }
+.tr-check svg { width: 30px; height: 30px; }
+.tr-check circle { stroke-dasharray: 63; stroke-dashoffset: 63; animation: tr-draw .6s ease forwards; }
+.tr-check path { stroke-dasharray: 18; stroke-dashoffset: 18; animation: tr-draw .4s .45s ease forwards; }
+ 
+/* Form */
+.tr-form { margin-top: 0; }
+.tr-submit { display: inline-flex; align-items: center; gap: 8px; }
+.tr-submit svg { transition: transform .25s; }
+.tr-submit:hover svg { transform: translate(3px, -3px); }
+ 
+/* Empty + loading */
+.tr-empty { display: grid; justify-items: center; gap: 10px; padding: 40px 20px; color: var(--muted); text-align: center; }
+.tr-empty svg { width: 48px; height: 48px; color: #9db4cb; animation: tr-float 3s ease-in-out infinite; }
+.tr-empty p { margin: 0; }
+.tr-skeletons { display: grid; gap: 14px; margin-top: 18px; }
+.tr-skeleton { height: 150px; border-radius: 14px; background: linear-gradient(90deg, #eef3f8 25%, #f9fbfd 50%, #eef3f8 75%); background-size: 200% 100%; animation: tr-shimmer 1.3s linear infinite; }
+ 
+/* Keyframes */
+@keyframes tr-drop { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: none; } }
+@keyframes tr-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes tr-spin { to { transform: rotate(360deg); } }
+@keyframes tr-ring { 0%, 8%, 100% { transform: rotate(0); } 2% { transform: rotate(14deg); } 4% { transform: rotate(-12deg); } 6% { transform: rotate(8deg); } }
+@keyframes tr-nudge { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }
+@keyframes tr-tick { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+@keyframes tr-draw { to { stroke-dashoffset: 0; } }
+@keyframes tr-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes tr-shimmer { to { background-position: -200% 0; } }
+ 
+/* Responsive */
+@media (max-width: 700px) {
+  .tr-summary { grid-template-columns: 1fr; }
+  .tr-card { padding: 18px 16px 18px 20px; }
+  .tr-card-head { flex-wrap: wrap; }
+  .tr-pill { order: -1; }
+  .tr-arrow { display: none; }
+}
+@media (max-width: 560px) {
+  .tr-heading-main { align-items: flex-start; }
+  .tr-heading-icon { width: 46px; height: 46px; }
+}
+ 
 @media (prefers-reduced-motion: reduce) {
-  .form-grid input,
-  .form-grid select,
-  .form-grid textarea,
-  .primary-button,
-  .secondary-button {
-    transition: none;
-  }
+  .page *, .page *::before, .page *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 </style>
