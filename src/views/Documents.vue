@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { apiFileUrl, apiGet, apiPost, downloadFile, getSession } from '../services/api'
+import { apiFileUrl, apiGet, apiPost, apiRequest, downloadFile, getSession } from '../services/api'
 
 interface DocumentRecord {
   document_id: number
@@ -156,7 +156,7 @@ async function removeDocument(item: DocumentRecord) {
   error.value = ''
   notice.value = ''
   try {
-    const response = await apiPost(`/documents/${item.document_id}/delete`, {})
+    const response = await apiRequest(`/documents/${item.document_id}`, { method: 'DELETE' })
     notice.value = response.message || 'Document deleted.'
     await load()
   } catch (reason) {
@@ -193,7 +193,7 @@ async function deleteRequirement(item: Requirement) {
   error.value = ''
   notice.value = ''
   try {
-    const response = await apiPost(`/certificate-requirements/${item.requirement_id}/delete`, {})
+    const response = await apiRequest(`/certificate-requirements/${item.requirement_id}`, { method: 'DELETE' })
     notice.value = response.message || 'Requirement removed.'
     await load()
   } catch (reason) {
