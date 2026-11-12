@@ -75,7 +75,13 @@ async function signOut() {
   }
 }
 
-watch(() => route.fullPath, closeNavigation)
+watch(() => route.fullPath, () => {
+  closeNavigation()
+  nextTick(() => {
+    const navigation = document.querySelector('#main-navigation')
+    if (navigation) navigation.scrollTop = 0
+  })
+})
 
 onMounted(async () => {
   document.addEventListener('keydown', handleKeydown)
@@ -251,8 +257,11 @@ onBeforeUnmount(() => {
  
 /* ================= Sidebar ================= */
 .sidebar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  z-index: 30;
+  width: 260px;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -588,6 +597,7 @@ nav a:focus-visible,
  
 /* ================= Main ================= */
 .main-content {
+  grid-column: 2;
   min-width: 0;
   width: 100%;
   padding: 30px;

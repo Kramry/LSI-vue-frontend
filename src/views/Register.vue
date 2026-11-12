@@ -6,7 +6,6 @@ import { apiGet, register } from '../services/api'
 const router = useRouter()
 const firstName = ref('')
 const lastName = ref('')
-const role = ref('trainee')
 const username = ref('')
 const email = ref('')
 const sex = ref('')
@@ -29,7 +28,6 @@ async function submit() {
       full_name: `${firstName.value} ${lastName.value}`.trim(),
       first_name: firstName.value,
       last_name: lastName.value,
-      role: role.value,
       username: username.value,
       email: email.value,
       sex: sex.value,
@@ -82,14 +80,12 @@ onMounted(async () => {
       <form class="register-card" @submit.prevent="submit">
         <p class="eyebrow">Create an account</p>
         <h1>Join SmartTrack</h1>
-        <p class="intro">Register as a trainee to get started.</p>
+        <p class="intro">Create a trainee account to access your training records.</p>
 
         <div class="two-col">
           <label for="first-name">First name<input id="first-name" v-model.trim="firstName" autocomplete="given-name" required></label>
           <label for="last-name">Last name<input id="last-name" v-model.trim="lastName" autocomplete="family-name" required></label>
         </div>
-
-        <label for="role">Role<select id="role" v-model="role" required><option value="trainee">Trainee</option><option value="instructor">Instructor</option><option value="staff">Staff</option></select></label>
 
         <label for="username">Username</label>
         <input id="username" v-model.trim="username" autocomplete="username" required>
@@ -124,6 +120,11 @@ onMounted(async () => {
 
         <p class="switch-page">Already have an account? <RouterLink to="/login">Sign in</RouterLink></p>
       </form>
+
+      <section class="staff-registration" aria-labelledby="staff-registration-title">
+        <h2 id="staff-registration-title">Staff or instructor?</h2>
+        <p>Staff and instructor accounts are set up by an LSI administrator. Contact the LSI office to request access.</p>
+      </section>
     </main>
   </div>
 </template>
@@ -152,9 +153,10 @@ onMounted(async () => {
 
 /* ================= Left brand panel ================= */
 .brand-panel {
-  position: sticky;
+  position: fixed;
   top: 0;
-  align-self: start;
+  left: 0;
+  width: 51.22vw;
   height: 100vh;
   min-width: 0;
   display: flex;
@@ -282,9 +284,11 @@ onMounted(async () => {
 
 /* ================= Right form panel ================= */
 .form-panel {
+  grid-column: 2;
   min-width: 0;
   display: grid;
   place-items: center;
+  gap: 0;
   padding: 40px clamp(24px, 6vw, 80px);
   background:
     radial-gradient(45% 35% at 100% 0%, rgb(143 196 245 / 22%), transparent 70%),
@@ -296,6 +300,28 @@ onMounted(async () => {
   display: grid;
   gap: 8px;
   width: min(100%, 440px);
+}
+
+.staff-registration {
+  width: min(100%, 440px);
+  margin-top: 24px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f7f9fd;
+}
+
+.staff-registration h2 {
+  margin: 0 0 6px;
+  color: var(--navy-deep);
+  font-size: 18px;
+}
+
+.staff-registration p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
 }
 
 /* staggered entrance for everything in the card */
@@ -684,7 +710,8 @@ button:disabled::after {
 
   .brand-panel {
     position: relative;
-    align-self: stretch;
+    left: auto;
+    width: auto;
     gap: 28px;
     height: auto;
     min-height: 260px;

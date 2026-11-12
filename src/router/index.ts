@@ -5,6 +5,11 @@ import { getSession } from '../services/api'
 
 const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior(_to, _from, savedPosition) {
+    // Restore the browser's position when navigating back/forward; start new
+    // routes at the top so page panels are not entered halfway down.
+    return savedPosition || { top: 0 }
+  },
   routes: [
     {
       path: '/',
