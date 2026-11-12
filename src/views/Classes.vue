@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { apiGet, apiPost, ApiError } from '../services/api'
+import { apiGet, apiPost, apiRequest, ApiError } from '../services/api'
 
 interface ClassCard {
   class_id: number
@@ -116,7 +116,7 @@ async function deleteClass(id: number) {
   if (!confirm('Are you sure you want to delete this class?')) return
   deletingId.value = id
   try {
-    await apiPost(`/classes/delete/${id}`, {})
+    await apiRequest(`/classes/${id}`, { method: 'DELETE' })
     await load()
   } catch (reason) {
     error.value = reason instanceof ApiError
