@@ -16,7 +16,6 @@ interface Assessment {
   assessment_date: string
   assessor_name: string
   notes: string
-  time_limit_minutes: number | null
 }
 interface AssessmentData {
   records: Assessment[]
@@ -119,7 +118,7 @@ const timedForm = ref({
   allow_late_submission: false
 })
 const submissions = ref<Record<number, { score: string; result_text: string }>>({})
-const form = ref({ trainee_id: '', class_id: '', assessment_name: '', outcome: 'pass', assessment_date: new Date().toISOString().slice(0, 10), notes: '', time_limit_minutes: '' })
+const form = ref({ trainee_id: '', class_id: '', assessment_name: '', outcome: 'pass', assessment_date: new Date().toISOString().slice(0, 10), notes: '' })
 const loading = ref(true)
 const saving = ref(false)
 const error = ref('')
@@ -362,8 +361,7 @@ function edit(item: Assessment) {
   form.value = {
     trainee_id: String(item.trainee_id), class_id: String(item.class_id),
     assessment_name: item.assessment_name, outcome: item.outcome,
-    assessment_date: item.assessment_date, notes: item.notes || '',
-    time_limit_minutes: item.time_limit_minutes ? String(item.time_limit_minutes) : ''
+    assessment_date: item.assessment_date, notes: item.notes || ''
   }
   notice.value = ''
 }
@@ -372,7 +370,7 @@ function resetForm() {
   editingId.value = null
   form.value = {
     trainee_id: '', class_id: '', assessment_name: '', outcome: 'pass',
-    assessment_date: new Date().toISOString().slice(0, 10), notes: '', time_limit_minutes: ''
+    assessment_date: new Date().toISOString().slice(0, 10), notes: ''
   }
 }
 
@@ -798,7 +796,6 @@ onBeforeUnmount(() => {
           <label>Assessment name<input v-model.trim="form.assessment_name" maxlength="150" required></label>
           <label>Outcome<select v-model="form.outcome" required><option value="pass">Pass</option><option value="fail">Fail</option></select></label>
           <label>Assessment date<input v-model="form.assessment_date" type="date" required></label>
-          <label>Time limit (minutes)<input v-model.trim="form.time_limit_minutes" type="number" min="1" max="1440" placeholder="Optional"></label>
           <label class="wide">Notes<textarea v-model.trim="form.notes" maxlength="2000" rows="3"></textarea></label>
           <div class="actions wide">
             <button class="primary-button" type="submit" :disabled="saving">{{ saving ? 'Saving…' : editingId ? 'Save changes' : 'Record result' }}</button>
@@ -807,7 +804,7 @@ onBeforeUnmount(() => {
         </form>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Trainee</th><th>Program / class</th><th>Assessment</th><th>Outcome</th><th>Date</th><th>Time limit</th><th>Assessor</th><th>Notes</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Trainee</th><th>Program / class</th><th>Assessment</th><th>Outcome</th><th>Date</th><th>Assessor</th><th>Notes</th><th>Actions</th></tr></thead>
             <tbody>
               <tr v-for="item in records" :key="item.assessment_id">
                 <td>{{ item.trainee_name }}<small>{{ item.trainee_number }}</small></td>
@@ -815,11 +812,10 @@ onBeforeUnmount(() => {
                 <td>{{ item.assessment_name }}</td>
                 <td><span class="pill" :class="item.outcome">{{ item.outcome }}</span></td>
                 <td>{{ item.assessment_date }}</td>
-                <td>{{ item.time_limit_minutes ? item.time_limit_minutes + ' min' : '—' }}</td>
                 <td>{{ item.assessor_name }}</td><td>{{ item.notes || '—' }}</td>
                 <td class="actions"><button class="text-button" @click="edit(item)">Edit</button><button class="text-button danger" @click="remove(item)">Delete</button></td>
               </tr>
-              <tr v-if="!records.length"><td colspan="9" class="empty">No assessment outcome records found.</td></tr>
+              <tr v-if="!records.length"><td colspan="8" class="empty">No assessment outcome records found.</td></tr>
             </tbody>
           </table>
         </div>
