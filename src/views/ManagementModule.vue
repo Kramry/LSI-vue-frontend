@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { apiGet, apiPost, ApiError } from '../services/api'
+import { apiGet, apiPost, apiRequest, ApiError } from '../services/api'
 
 interface ModuleField {
   name: string
@@ -115,7 +115,7 @@ async function deleteRecord(record: Record<string, string | number | string[] | 
   deletingId.value = id
   error.value = ''
   try {
-    await apiPost(`/modules/${encodeURIComponent(section.value)}/delete/${id}`, {})
+    await apiRequest(`/modules/${encodeURIComponent(section.value)}/${id}`, { method: 'DELETE' })
     if (editingId.value === id) startCreate()
     await loadModule()
   } catch (reason) {
