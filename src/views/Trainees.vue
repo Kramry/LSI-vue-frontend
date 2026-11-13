@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { apiGet, apiPost } from '../services/api'
+import { apiGet, apiPost, apiRequest } from '../services/api'
 
 interface Trainee {
   trainee_id: number
@@ -121,7 +121,9 @@ async function deactivate(trainee: Trainee) {
   error.value = ''
   notice.value = ''
   try {
-    const response = await apiPost(`/modules/trainees/delete/${trainee.trainee_id}`, {})
+    const response = await apiRequest(`/modules/trainees/${trainee.trainee_id}`, {
+      method: 'DELETE'
+    })
     notice.value = response.message || 'Trainee deactivated.'
     await load()
   } catch (reason) {
