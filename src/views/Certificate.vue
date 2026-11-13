@@ -35,6 +35,7 @@ const data = ref<CertificateData>({})
 const certificates = ref<Row[]>([])
 const selected = ref<Row | null>(null)
 const signingPreviewUrl = ref('')
+const signingPreviewError = ref('')
 let signingPreviewRevision = 0
 const verifiedRecord = ref<VerificationData | null>(null)
 const busy = ref(false)
@@ -137,6 +138,7 @@ watch(selected, async (certificate) => {
   const revision = ++signingPreviewRevision
   if (signingPreviewUrl.value) URL.revokeObjectURL(signingPreviewUrl.value)
   signingPreviewUrl.value = ''
+  signingPreviewError.value = ''
   if (!certificate) return
 
   try {
@@ -146,7 +148,8 @@ watch(selected, async (certificate) => {
     else signingPreviewUrl.value = objectUrl
   } catch (reason) {
     if (revision === signingPreviewRevision) {
-      error.value = reason instanceof Error ? reason.message : 'Unable to load the certificate preview.'
+      signingPreviewError.value = reason instanceof Error ? reason.message : 'Unable to load the certificate preview.'
+      error.value = signingPreviewError.value
     }
   }
 })
@@ -620,7 +623,7 @@ onMounted(async () => {
 
         <div class="signing-layout">
           <iframe v-if="signingPreviewUrl" class="preview" :src="signingPreviewUrl" title="Certificate signing preview"></iframe>
-          <div v-else class="preview preview-loading" role="status">Loading certificate preview…</div>
+          <div v-else class="preview preview-loading" :role="signingPreviewError ? 'alert' : 'status'">{{ signingPreviewError || 'Loading certificate preview…' }}</div>
 
           <aside class="signing-side">
             <form class="side-card sign-actions" @submit.prevent="signCertificate">
