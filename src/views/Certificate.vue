@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, type CSSProperties } from 'vue'
-import { apiFileUrl, apiGet, apiPost, downloadFile, fetchProtectedBlob, getSession } from '../services/api'
+import { apiFileUrl, apiGet, apiPost, apiRequest, downloadFile, fetchProtectedBlob, getSession } from '../services/api'
 
 type Row = Record<string, string | number | boolean | null | undefined>
 interface Template {
@@ -476,7 +476,18 @@ async function saveSignatory() {
 
 async function deactivateSignatory(item: Row) {
   if (!window.confirm(`Deactivate ${item.name} as a certificate signatory?`)) return
-  await postAction(`/certificate-signatories/${item.signatory_id}/delete`, {}, 'Signatory deactivated.')
+  busy.value = true
+  error.value = ''
+  notice.value = ''
+  try {
+    const response = await apiRequest(`/certificate-signatories/${item.signatory_id}`, { method: 'DELETE' })
+    notice.value = response.message || 'Signatory deactivated.'
+    await reload()
+  } catch (reason) {
+    error.value = safeError(reason, 'The signatory could not be deactivated.')
+  } finally {
+    busy.value = false
+  }
 }
 
 function onTemplateFile(event: Event) {
