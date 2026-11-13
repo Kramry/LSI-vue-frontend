@@ -272,7 +272,9 @@ onMounted(() => {
                     :disabled="deletingId === Number(record[module.primary_key])"
                     @click="deleteRecord(record)"
                   >
-                    {{ deletingId === Number(record[module.primary_key]) ? (section === 'programs' ? 'Archiving...' : 'Deleting...') : actionLabel }}
+                    {{ deletingId === Number(record[module.primary_key])
+                      ? (section === 'programs' ? 'Archiving...' : 'Deleting...')
+                      : (section === 'programs' ? 'Archive' : 'Delete') }}
                   </button>
                 </td>
               </tr>
