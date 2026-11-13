@@ -32,6 +32,7 @@ export interface DownloadFileOptions {
   filename?: string
   openInNewTab?: boolean
 }
+export function fetchProtectedBlob(path: string, accept?: string): Promise<Blob>
 export function downloadFile(path: string, options?: DownloadFileOptions): Promise<{ fileUrl: string; fileName: string; blob: Blob }>
 export function getSession(): Promise<SessionData>
 export function login(username: string, password: string): Promise<SessionData>
