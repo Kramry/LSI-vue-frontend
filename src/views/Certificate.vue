@@ -586,7 +586,18 @@ function editTemplate(item: Row) {
 async function deleteTemplate(item: Row) {
   if (Number(item.is_active)) return
   if (!window.confirm(`Delete certificate template v${item.version}? This cannot be undone.`)) return
-  await postAction(`/certificate-templates/${item.template_id}/delete`, {}, 'Certificate template deleted.')
+  busy.value = true
+  error.value = ''
+  notice.value = ''
+  try {
+    const response = await apiRequest(`/certificate-templates/${item.template_id}`, { method: 'DELETE' })
+    notice.value = response.message || 'Certificate template deleted.'
+    await reload()
+  } catch (reason) {
+    error.value = safeError(reason, 'The certificate template could not be deleted.')
+  } finally {
+    busy.value = false
+  }
 }
 
 function cancelTemplateEdit() {
