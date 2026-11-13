@@ -110,7 +110,11 @@ async function deleteRecord(record: Record<string, string | number | string[] | 
   if (!module.value) return
   const id = Number(record[module.value.primary_key])
   if (!Number.isInteger(id) || id < 1) return
-  if (!window.confirm(`Delete this ${module.value.title.toLowerCase()} record?`)) return
+  const actionLabel = section.value === 'programs' ? 'Archive' : 'Delete'
+  const confirmation = section.value === 'programs'
+    ? 'Archive this program? Its classes and history will be retained.'
+    : `Delete this ${module.value.title.toLowerCase()} record?`
+  if (!window.confirm(confirmation)) return
 
   deletingId.value = id
   error.value = ''
@@ -263,11 +267,12 @@ onMounted(() => {
                 <td v-if="module.can_manage" class="row-actions">
                   <button class="text-button" @click="startEdit(record)">Edit</button>
                   <button
+                    v-if="section !== 'programs' || record.status !== 'inactive'"
                     class="text-button danger"
                     :disabled="deletingId === Number(record[module.primary_key])"
                     @click="deleteRecord(record)"
                   >
-                    {{ deletingId === Number(record[module.primary_key]) ? 'Deleting...' : 'Delete' }}
+                    {{ deletingId === Number(record[module.primary_key]) ? (section === 'programs' ? 'Archiving...' : 'Deleting...') : actionLabel }}
                   </button>
                 </td>
               </tr>
