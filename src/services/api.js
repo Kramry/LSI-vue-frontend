@@ -196,13 +196,40 @@ export function apiFileUrl(path) {
   return `${API_BASE_URL}${urlPath}`
 }
 
-export async function downloadFile(path, options = {}) {
+async function protectedFileResponse(path, accept = '*/*') {
   const urlPath = path.startsWith('/') ? path : `/${path}`
-  const response = await fetch(`${API_BASE_URL}${urlPath}`, {
-    method: 'GET',
-    credentials: 'include',
-    headers: { Accept: '*/*' }
-  })
+  const fetchFile = () => {
+    const headers = new Headers({ Accept: accept })
+    if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`)
+    return fetch(`${API_BASE_URL}${urlPath}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers
+    })
+  }
+
+  let response = await fetchFile()
+  if (response.status === 401) {
+    try {
+      await refreshAccessToken()
+      response = await fetchFile()
+    } catch {
+      saveAccessToken('')
+      redirectToLogin()
+      throw new ApiError('Your session expired. Sign in again to view this file.', 401)
+    }
+  }
+
+  if (response.status === 401) {
+    saveAccessToken('')
+    redirectToLogin()
+    throw new ApiError('Your session expired. Sign in again to view this file.', 401)
+  }
+  return response
+}
+
+export async function fetchProtectedBlob(path, accept = 'application/pdf') {
+  const response = await protectedFileResponse(path, accept)
 
   if (!response.ok) {
     let message = `The server could not fetch the requested file (${response.status}).`
@@ -220,7 +247,11 @@ export async function downloadFile(path, options = {}) {
     throw new Error(message)
   }
 
-  const blob = await response.blob()
+  return response.blob()
+}
+
+export async function downloadFile(path, options = {}) {
+  const blob = await fetchProtectedBlob(path, '*/*')
   const fileUrl = URL.createObjectURL(blob)
   const fileName = options.filename || path.split('/').pop() || 'download'
 

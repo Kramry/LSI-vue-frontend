@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch, type CSSProperties } from 'vue'
-import { apiFileUrl, apiGet, apiPost, downloadFile, getSession } from '../services/api'
+import { apiFileUrl, apiGet, apiPost, downloadFile, fetchProtectedBlob, getSession } from '../services/api'
 
 type Row = Record<string, string | number | boolean | null | undefined>
 interface Template {
@@ -34,6 +34,8 @@ const role = ref('')
 const data = ref<CertificateData>({})
 const certificates = ref<Row[]>([])
 const selected = ref<Row | null>(null)
+const signingPreviewUrl = ref('')
+let signingPreviewRevision = 0
 const verifiedRecord = ref<VerificationData | null>(null)
 const busy = ref(false)
 const loading = ref(true)
@@ -131,9 +133,28 @@ watch(logoFile, (file) => {
   if (logoPreviewUrl.value) URL.revokeObjectURL(logoPreviewUrl.value)
   logoPreviewUrl.value = file ? URL.createObjectURL(file) : ''
 })
+watch(selected, async (certificate) => {
+  const revision = ++signingPreviewRevision
+  if (signingPreviewUrl.value) URL.revokeObjectURL(signingPreviewUrl.value)
+  signingPreviewUrl.value = ''
+  if (!certificate) return
+
+  try {
+    const pdf = await fetchProtectedBlob(`/certificates/${certificate.certificate_id}/sign-preview`)
+    const objectUrl = URL.createObjectURL(pdf)
+    if (revision !== signingPreviewRevision) URL.revokeObjectURL(objectUrl)
+    else signingPreviewUrl.value = objectUrl
+  } catch (reason) {
+    if (revision === signingPreviewRevision) {
+      error.value = reason instanceof Error ? reason.message : 'Unable to load the certificate preview.'
+    }
+  }
+})
 onBeforeUnmount(() => {
+  signingPreviewRevision += 1
   if (templateFilePreviewUrl.value) URL.revokeObjectURL(templateFilePreviewUrl.value)
   if (logoPreviewUrl.value) URL.revokeObjectURL(logoPreviewUrl.value)
+  if (signingPreviewUrl.value) URL.revokeObjectURL(signingPreviewUrl.value)
 })
 
 async function openProtectedFile(path: string, fileName: string, openInNewTab = false) {
@@ -598,7 +619,8 @@ onMounted(async () => {
         </div>
 
         <div class="signing-layout">
-          <iframe class="preview" :src="apiFileUrl(`/certificates/${selected.certificate_id}/sign-preview`)" title="Certificate signing preview"></iframe>
+          <iframe v-if="signingPreviewUrl" class="preview" :src="signingPreviewUrl" title="Certificate signing preview"></iframe>
+          <div v-else class="preview preview-loading" role="status">Loading certificate preview…</div>
 
           <aside class="signing-side">
             <form class="side-card sign-actions" @submit.prevent="signCertificate">
@@ -2265,6 +2287,12 @@ td.end {
   background: #f3f6fb;
   box-shadow: 0 16px 34px -22px rgb(17 44 73 / 60%);
   animation: paper-in 0.7s var(--ease) 0.15s both;
+}
+
+.preview-loading {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
 }
 
 .signing-side {
