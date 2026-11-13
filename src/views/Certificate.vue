@@ -741,8 +741,8 @@ onMounted(async () => {
                   <label>Institution name<input v-model.trim="templateForm.institution_name" maxlength="150" required></label>
                   <label>Title text<input v-model.trim="templateForm.title_text" maxlength="150" required></label>
                   <label class="wide">Certificate body<textarea v-model.trim="templateForm.body_text" maxlength="2000" rows="3" required></textarea></label>
-                  <label>Printed signatory name<input v-model.trim="templateForm.signatory_name" maxlength="150" required></label>
-                  <label>Printed signatory title<input v-model.trim="templateForm.signatory_title" maxlength="150" required></label>
+                  <label>Fallback printed signatory name<input v-model.trim="templateForm.signatory_name" maxlength="150" required></label>
+                  <label>Fallback printed signatory title<input v-model.trim="templateForm.signatory_title" maxlength="150" required></label>
                 </div>
               </div>
 
