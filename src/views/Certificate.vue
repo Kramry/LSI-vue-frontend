@@ -1078,25 +1078,29 @@ onMounted(async () => {
 <style scoped>
 .page {
   --navy: #173a60;
-  --navy-deep: #112c49;
-  --blue: #265f94;
-  --blue-hover: #1f4f7d;
+  --navy-deep: #0d2239;
+  --ink: #081727;
+  --blue: #2a6aa8;
   --sky: #8fc4f5;
-  --text: #1b2a3a;
-  --muted: #5d6f82;
-  --line: #e1e8f1;
-  --field: #eaf0fb;
+  --ice: #e6f3ff;
+  --gold: #e8c98a;
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
+  --muted: #5d6f82;
+  --line: #e1e8f1;
+  --field: #f1f5fb;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --chev: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6f82' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
 
-  max-width: 1500px;
-  margin: auto;
-  color: var(--text);
+  display: grid;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+  color: #16263a;
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
-  font-variant-numeric: tabular-nums;
 }
 
 /* ================= Banner and headings ================= */
