@@ -15,7 +15,8 @@ let previousBodyOverflow = ''
 
 const links = [
   { label: 'Dashboard', to: '/dashboard', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
-  { label: 'Accounts', to: '/accounts', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
+  { label: 'Profile', to: '/accounts', roles: ['administrator', 'staff', 'instructor', 'trainee'] },
+  { label: 'User accounts', to: '/users', roles: ['administrator', 'staff'] },
   { label: 'Trainees', to: '/trainees', roles: ['administrator', 'staff', 'instructor'] },
   { label: 'Programs', to: '/programs', roles: ['administrator', 'staff'] },
   { label: 'Classes', to: '/classes', roles: ['administrator', 'staff'] },

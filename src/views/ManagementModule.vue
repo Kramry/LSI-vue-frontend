@@ -26,6 +26,7 @@ const props = defineProps<{ section: string }>()
 const section = computed(() => props.section)
 const singularTitle = computed(() => ({
   programs: 'program',
+  users: 'user account',
   classes: 'class',
   schedules: 'schedule',
   enrollments: 'enrollment',
@@ -39,7 +40,16 @@ const deletingId = ref<number | null>(null)
 const error = ref('')
 const editingId = ref<number | null>(null)
 const formOpen = ref(false)
+const search = ref('')
 const form = reactive<Record<string, string>>({})
+const visibleRecords = computed(() => {
+  const records = module.value?.records || []
+  const query = search.value.trim().toLocaleLowerCase()
+  if (!query) return records
+  return records.filter((record) => Object.values(record).some((value) =>
+    String(value ?? '').toLocaleLowerCase().includes(query)
+  ))
+})
 
 function blankForm() {
   for (const key of Object.keys(form)) delete form[key]
@@ -76,10 +86,11 @@ async function loadModule() {
   error.value = ''
   module.value = null
   editingId.value = null
-  formOpen.value = false
+  formOpen.value = section.value === 'users'
   try {
     const response = await apiGet<ModulePayload>(`/modules/${encodeURIComponent(section.value)}`)
     module.value = response.data
+    formOpen.value = section.value === 'users' && response.data.can_manage
     blankForm()
   } catch (reason) {
     error.value = reason instanceof Error ? reason.message : 'Unable to load this section.'
@@ -152,7 +163,7 @@ onMounted(() => {
       </div>
       <div class="heading-actions">
         <button
-          v-if="module?.can_create && !editingId"
+          v-if="module?.can_create && !editingId && section !== 'users'"
           class="add-button"
           @click="startCreate"
         >
@@ -166,10 +177,11 @@ onMounted(() => {
     <p v-if="loading" class="panel muted loading">Loading {{ columnLabel(section).toLowerCase() }}...</p>
 
     <template v-else-if="module">
+      <div class="module-workspace" :class="{ 'users-workspace': section === 'users' }">
       <section v-if="module.can_manage && formOpen && (module.can_create || editingId)" class="panel form-panel">
         <div class="section-heading">
           <div>
-            <h2>{{ editingId ? 'Edit record' : `Add ${singularTitle}` }}</h2>
+            <h2>{{ editingId ? (section === 'users' ? 'Edit user account' : 'Edit record') : `Add ${singularTitle}` }}</h2>
             <p v-if="section === 'inquiries' && editingId">Reply to the trainee and update the inquiry status.</p>
             <p v-else class="hint">Fields marked required must be filled in before saving.</p>
           </div>
@@ -219,7 +231,7 @@ onMounted(() => {
 
           <div class="form-actions">
             <button class="primary-button" type="submit" :disabled="saving">
-              {{ saving ? 'Saving...' : editingId ? 'Save changes' : 'Create' }}
+              {{ saving ? 'Saving...' : editingId ? 'Save changes' : section === 'users' ? 'Create record' : 'Create' }}
             </button>
             <span v-if="saving" class="muted">Saving changes...</span>
           </div>
@@ -230,15 +242,20 @@ onMounted(() => {
         <div class="section-heading">
           <div>
             <h2>{{ module.title }}</h2>
-            <p>All records you are allowed to see.</p>
+            <p>{{ section === 'users' ? 'Create and manage staff and trainee sign-in accounts.' : 'All records you are allowed to see.' }}</p>
           </div>
           <span class="count-badge">
-            {{ module.records.length }} record{{ module.records.length === 1 ? '' : 's' }}
+            {{ visibleRecords.length }} record{{ visibleRecords.length === 1 ? '' : 's' }}
           </span>
         </div>
 
-        <div v-if="!module.records.length" class="empty-state">
-          <p>No {{ module.title.toLowerCase() }} found.</p>
+        <label v-if="section === 'users'" class="record-search">
+          <span class="label-text">Search records</span>
+          <input v-model="search" type="search" placeholder="Search name, username, role, or status">
+        </label>
+
+        <div v-if="!visibleRecords.length" class="empty-state">
+          <p>{{ search ? 'No matching user accounts found.' : `No ${module.title.toLowerCase()} found.` }}</p>
           <button v-if="module.can_create && !editingId" class="primary-button" @click="startCreate">
             Add the first record
           </button>
@@ -254,7 +271,7 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody>
-              <tr v-for="record in module.records" :key="String(record[module.primary_key])">
+              <tr v-for="record in visibleRecords" :key="String(record[module.primary_key])">
                 <td v-for="column in module.columns" :key="column">
                   {{ record[column] ?? '—' }}
                 </td>
@@ -282,6 +299,7 @@ onMounted(() => {
           </table>
         </div>
       </section>
+      </div>
     </template>
   </main>
 </template>
@@ -309,6 +327,35 @@ onMounted(() => {
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
 }
+
+.module-workspace { display: contents; }
+.users-workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 2fr);
+  align-items: start;
+  gap: 18px;
+}
+.users-workspace .form-panel,
+.users-workspace .list-panel { min-width: 0; }
+.record-search {
+  display: grid;
+  gap: 7px;
+  max-width: 320px;
+  margin: 14px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.record-search input {
+  min-height: 40px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--field);
+  color: var(--text);
+  font: inherit;
+}
+.record-search input:focus { outline: 3px solid rgb(143 196 245 / 45%); }
 
 /* ================= Banner ================= */
 .page-header,
@@ -989,6 +1036,7 @@ tbody tr:focus-within .row-actions .text-button {
 
 /* ================= Responsive ================= */
 @media (max-width: 650px) {
+  .users-workspace { grid-template-columns: minmax(0, 1fr); }
   .page-header {
     flex-direction: column;
     align-items: flex-start;
