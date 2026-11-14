@@ -113,7 +113,7 @@ async function saveClass() {
 }
 
 async function deleteClass(id: number) {
-  if (!confirm('Are you sure you want to delete this class?')) return
+  if (!confirm('Delete this class and its linked enrollments, schedules, assessments, certificates, fees, and timed assessments? Attendance records will be kept without this class link.')) return
   deletingId.value = id
   try {
     await apiRequest(`/classes/${id}`, { method: 'DELETE' })
