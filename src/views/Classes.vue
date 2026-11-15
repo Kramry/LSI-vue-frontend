@@ -321,6 +321,8 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght,SOFT@9..144,400..700,0..100&display=swap');
+
 .classes-page {
   --navy: #173a60;
   --navy-deep: #0d2239;
@@ -332,7 +334,8 @@ onMounted(async () => {
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
-  --muted: #5d6f82;
+  --muted: #52657a;
+  --text: #16263a;
   --line: #e1e8f1;
   --field: #f1f5fb;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -341,12 +344,18 @@ onMounted(async () => {
   --chev: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6f82' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
 
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   max-width: 1400px;
   margin: 0 auto;
   color: #16263a;
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
 }
+
+.classes-page,
+.classes-page *,
+.classes-page *::before,
+.classes-page *::after { box-sizing: border-box; }
 
 /* ================= Banner ================= */
 .page-header {
@@ -360,7 +369,7 @@ onMounted(async () => {
   color: #fff;
   background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
-  animation: drop-in 0.6s var(--ease) both;
+  animation: drop-in 0.6s var(--ease) backwards;
 }
 
 .page-header::before {
@@ -400,7 +409,7 @@ onMounted(async () => {
   font-size: 32px;
   font-weight: 600;
   letter-spacing: -0.01em;
-  animation: rise 0.7s var(--ease) 0.1s both;
+  animation: rise 0.7s var(--ease) 0.1s backwards;
 }
 
 .eyebrow {
@@ -415,7 +424,7 @@ onMounted(async () => {
   margin: 6px 0 0;
   color: rgb(255 255 255 / 80%);
   font-size: 14px;
-  animation: rise 0.7s var(--ease) 0.2s both;
+  animation: rise 0.7s var(--ease) 0.2s backwards;
 }
 
 .heading-side {
@@ -434,7 +443,7 @@ onMounted(async () => {
   background: rgb(143 196 245 / 16%);
   color: #d6e9fb;
   font-size: 13px;
-  animation: pop-in 0.6s var(--spring) 0.25s both;
+  animation: pop-in 0.6s var(--spring) 0.25s backwards;
 }
 
 .count-chip strong {
@@ -444,7 +453,7 @@ onMounted(async () => {
   font-size: 26px;
   font-weight: 600;
   line-height: 1;
-  animation: number-in 0.7s var(--ease) 0.45s both;
+  animation: number-in 0.7s var(--ease) 0.45s backwards;
 }
 
 .header-button {
@@ -452,7 +461,7 @@ onMounted(async () => {
   border: 1px solid rgb(255 255 255 / 28%);
   background: rgb(255 255 255 / 12%);
   color: #fff;
-  animation: pop-in 0.55s var(--spring) 0.33s both;
+  animation: pop-in 0.55s var(--spring) 0.33s backwards;
 }
 
 .header-button:hover:not(:disabled) {
@@ -506,7 +515,7 @@ onMounted(async () => {
   background: #fdeceb;
   color: var(--danger);
   font-size: 13px;
-  animation: shake 0.45s ease both;
+  animation: shake 0.45s ease backwards;
 }
 
 /* ================= Add / edit form: opens like a drawer ================= */
@@ -516,7 +525,7 @@ onMounted(async () => {
   gap: 18px;
   border-top: 3px solid transparent;
   transform-origin: top center;
-  animation: drawer-open 0.55s var(--ease) both;
+  animation: drawer-open 0.55s var(--ease) backwards;
 }
 
 .form-panel::before {
@@ -527,7 +536,7 @@ onMounted(async () => {
   height: 3px;
   border-radius: 12px 12px 0 0;
   background: linear-gradient(90deg, var(--blue), var(--sky));
-  animation: edge-draw 0.8s var(--ease) 0.1s both;
+  animation: edge-draw 0.8s var(--ease) 0.1s backwards;
 }
 
 .form-heading {
@@ -557,7 +566,7 @@ onMounted(async () => {
 
 /* fields appear one after another */
 .class-form > * {
-  animation: rise 0.5s var(--ease) both;
+  animation: rise 0.5s var(--ease) backwards;
 }
 
 .class-form > :nth-child(1) { animation-delay: 0.15s; }
@@ -572,19 +581,26 @@ onMounted(async () => {
 
 .class-form label {
   display: grid;
-  gap: 6px;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 3px;
   color: var(--muted);
   font-size: 13px;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
-.class-form label:has(input:focus, select:focus) {
+.class-form label:has(input:focus, select:focus, textarea:focus) {
   color: var(--blue);
+}
+
+.class-form label > input,
+.class-form label > select {
+  grid-column: 1 / -1;
 }
 
 /* the required star pulses gently */
 .class-form label em {
+  justify-self: start;
   display: inline-block;
   color: var(--danger);
   font-style: normal;
@@ -633,7 +649,7 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 12px;
   padding: 14px;
-  animation: rise 0.6s var(--ease) 0.1s both;
+  animation: rise 0.6s var(--ease) 0.1s backwards;
 }
 
 .search-field {
@@ -683,7 +699,7 @@ onMounted(async () => {
 /* ================= Class cards: dealt in like timetable slots ================= */
 .class-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
   gap: 18px;
 }
 
@@ -692,7 +708,7 @@ onMounted(async () => {
   gap: 18px;
   align-content: start;
   border-left: 4px solid var(--blue);
-  animation: deal-in 0.65s var(--spring) both;
+  animation: deal-in 0.65s var(--spring) backwards;
   transition: transform 0.3s var(--ease), box-shadow 0.3s ease, border-left-width 0.25s ease;
 }
 
@@ -759,7 +775,7 @@ onMounted(async () => {
   font-size: 11.5px;
   font-weight: 700;
   text-transform: capitalize;
-  animation: pop-in 0.45s var(--spring) 0.3s both;
+  animation: pop-in 0.45s var(--spring) 0.3s backwards;
 }
 
 .status-pill::before {
@@ -850,7 +866,7 @@ onMounted(async () => {
   border-radius: 8px;
   background: linear-gradient(90deg, var(--sky), var(--blue));
   transform-origin: left;
-  animation: gauge-fill 1s var(--ease) 0.6s both;
+  animation: gauge-fill 1s var(--ease) 0.6s backwards;
   transition: width 0.3s ease;
 }
 
@@ -868,7 +884,7 @@ onMounted(async () => {
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -897,7 +913,7 @@ onMounted(async () => {
   font-family: 'Fraunces', Georgia, serif;
   font-size: 22px;
   font-weight: 600;
-  animation: number-in 0.7s var(--ease) 0.5s both;
+  animation: number-in 0.7s var(--ease) 0.5s backwards;
 }
 
 .stats span {
@@ -908,7 +924,7 @@ onMounted(async () => {
 /* ================= Buttons ================= */
 .actions {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   padding-top: 16px;
   border-top: 1px dashed var(--line);
@@ -1028,7 +1044,7 @@ onMounted(async () => {
   background:
     radial-gradient(rgb(17 44 73 / 6%) 1px, transparent 1px) 0 0 / 16px 16px,
     #fff;
-  animation: rise 0.6s var(--ease) 0.2s both;
+  animation: rise 0.6s var(--ease) 0.2s backwards;
 }
 
 /* an empty calendar tile that gently bobs */
@@ -1259,6 +1275,12 @@ onMounted(async () => {
 }
 
 /* ================= Responsive ================= */
+@media (max-width: 850px) {
+  .class-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 600px) {
   .page-header {
     display: grid;
@@ -1300,12 +1322,6 @@ onMounted(async () => {
 
   .panel {
     padding: 16px;
-  }
-}
-
-@media (max-width: 850px) {
-  .class-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

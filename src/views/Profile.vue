@@ -151,6 +151,8 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght,SOFT@9..144,400..700,0..100&display=swap');
+
 .profile-page {
   --navy: #173a60;
   --navy-deep: #0d2239;
@@ -162,7 +164,8 @@ onMounted(() => {
   --ok: #2d8a57;
   --warn: #c98a00;
   --danger: #b4281f;
-  --muted: #5d6f82;
+  --muted: #52657a;
+  --text: #16263a;
   --line: #e1e8f1;
   --field: #f1f5fb;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -171,12 +174,18 @@ onMounted(() => {
   --chev: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6f82' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'><path d='M6 9l6 6 6-6'/></svg>");
 
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   max-width: 1400px;
   margin: 0 auto;
   color: #16263a;
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
 }
+
+.profile-page,
+.profile-page *,
+.profile-page *::before,
+.profile-page *::after { box-sizing: border-box; }
 
 /* ================= Banner ================= */
 .page-header {
@@ -186,7 +195,7 @@ onMounted(() => {
   color: #fff;
   background: linear-gradient(120deg, var(--navy) 0%, #1b4470 60%, var(--navy) 100%);
   overflow: hidden;
-  animation: drop-in 0.6s var(--ease) both;
+  animation: drop-in 0.6s var(--ease) backwards;
 }
 
 .page-header::before {
@@ -240,20 +249,20 @@ onMounted(() => {
   animation: ping 2.2s ease-out infinite;
 }
 
-h1,
-h2 {
+:where(.profile-page) h1,
+:where(.profile-page) h2 {
   margin: 0;
   font-family: 'Fraunces', Georgia, serif;
 }
 
-h1 {
+:where(.profile-page) h1 {
   color: #fff;
   font-size: clamp(30px, 5vw, 44px);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-h2 {
+:where(.profile-page) h2 {
   margin-bottom: 20px;
   color: var(--navy-deep);
   font-size: 24px;
@@ -278,7 +287,7 @@ h2 {
   border-radius: 12px;
   background: #fff;
   box-shadow: 0 12px 30px -18px rgb(23 58 96 / 35%);
-  animation: rise 0.65s var(--ease) 0.15s both;
+  animation: rise 0.65s var(--ease) 0.15s backwards;
   transition: box-shadow 0.3s ease, transform 0.3s var(--ease);
 }
 
@@ -297,13 +306,13 @@ h2 {
   border-radius: 0 0 6px 6px;
   background: linear-gradient(90deg, var(--blue), var(--sky));
   transform-origin: left;
-  animation: tab-draw 0.7s var(--ease) 0.4s both;
+  animation: tab-draw 0.7s var(--ease) 0.4s backwards;
 }
 
 /* the two columns arrive from opposite sides */
 .profile-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -325,7 +334,7 @@ h2 {
 
 /* fields appear one after another */
 .form-grid > * {
-  animation: rise 0.5s var(--ease) both;
+  animation: rise 0.5s var(--ease) backwards;
 }
 
 .form-grid > :nth-child(1) { animation-delay: 0.35s; }
@@ -336,7 +345,7 @@ h2 {
 .form-grid > :nth-child(6) { animation-delay: 0.65s; }
 .form-grid > :nth-child(n + 7) { animation-delay: 0.71s; }
 
-label {
+:where(.profile-page) label {
   display: grid;
   gap: 7px;
   color: var(--muted);
@@ -345,11 +354,11 @@ label {
   transition: color 0.2s ease;
 }
 
-label:has(input:focus) {
+:where(.profile-page) label:has(input:focus) {
   color: var(--blue);
 }
 
-input {
+:where(.profile-page) input {
   box-sizing: border-box;
   width: 100%;
   padding: 11px 13px;
@@ -361,11 +370,11 @@ input {
   transition: border-color 0.2s ease, box-shadow 0.25s ease, background 0.2s ease, transform 0.25s var(--ease);
 }
 
-input:hover:not(:disabled) {
+:where(.profile-page) input:hover:not(:disabled) {
   border-color: #b6c8de;
 }
 
-input:focus {
+:where(.profile-page) input:focus {
   outline: none;
   border-color: var(--blue);
   background: #fff;
@@ -374,7 +383,7 @@ input:focus {
 }
 
 /* locked fields look "hatched" and give a tiny nudge when you try them */
-input:disabled {
+:where(.profile-page) input:disabled {
   border-style: dashed;
   background:
     repeating-linear-gradient(135deg, rgb(143 196 245 / 0%) 0 8px, rgb(143 196 245 / 12%) 8px 16px),
@@ -383,12 +392,12 @@ input:disabled {
   cursor: not-allowed;
 }
 
-input:disabled:active {
+:where(.profile-page) input:disabled:active {
   animation: nudge 0.3s ease;
 }
 
 /* ================= Buttons ================= */
-button {
+:where(.profile-page) button {
   position: relative;
   width: fit-content;
   padding: 11px 18px;
@@ -405,7 +414,7 @@ button {
 }
 
 /* light sweep on hover */
-button::before {
+:where(.profile-page) button::before {
   content: '';
   position: absolute;
   top: 0;
@@ -417,31 +426,31 @@ button::before {
   transition: left 0.7s var(--ease);
 }
 
-button:hover:not(:disabled) {
+:where(.profile-page) button:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 18px 26px -14px rgb(38 95 148 / 90%);
 }
 
-button:hover:not(:disabled)::before {
+:where(.profile-page) button:hover:not(:disabled)::before {
   left: 130%;
 }
 
-button:active:not(:disabled) {
+:where(.profile-page) button:active:not(:disabled) {
   transform: scale(0.97);
 }
 
-button:focus-visible {
+:where(.profile-page) button:focus-visible {
   outline: 3px solid var(--sky);
   outline-offset: 2px;
 }
 
-button:disabled {
+:where(.profile-page) button:disabled {
   opacity: 0.75;
   cursor: wait;
 }
 
 /* saving: progress stripe along the bottom edge */
-button:disabled::after {
+:where(.profile-page) button:disabled::after {
   content: '';
   position: absolute;
   right: 0;
@@ -477,7 +486,7 @@ button:disabled::after {
   border-radius: 6px;
   background: #fdeceb;
   color: var(--danger);
-  animation: shake 0.45s ease both;
+  animation: shake 0.45s ease backwards;
 }
 
 /* a saved change shows a green tick that pops in */
@@ -487,7 +496,7 @@ button:disabled::after {
   gap: 10px;
   color: var(--ok);
   font-weight: 700;
-  animation: pop-in 0.5s var(--spring) both;
+  animation: pop-in 0.5s var(--spring) backwards;
 }
 
 .inline-success::before {
@@ -502,7 +511,7 @@ button:disabled::after {
   color: #fff;
   font-size: 12px;
   font-weight: 800;
-  animation: tick-pop 0.55s var(--spring) 0.1s both, ring-green 1.1s ease-out 0.2s 2;
+  animation: tick-pop 0.55s var(--spring) 0.1s backwards, ring-green 1.1s ease-out 0.2s 2;
 }
 
 /* ================= Trainee QR ID ================= */
@@ -510,7 +519,7 @@ button:disabled::after {
   position: relative;
   max-width: 310px;
   text-align: center;
-  animation: card-in 0.8s var(--spring) 0.45s both;
+  animation: card-in 0.8s var(--spring) 0.45s backwards;
   transition: transform 0.45s var(--spring), filter 0.3s ease;
 }
 
@@ -732,7 +741,7 @@ button:disabled::after {
   }
 
   .profile-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .profile-grid > .panel:nth-child(odd),
@@ -758,9 +767,9 @@ button:disabled::after {
 
   .form-grid,
   .panel,
-  label,
-  input,
-  button {
+  :where(.profile-page) label,
+  :where(.profile-page) input,
+  :where(.profile-page) button {
     min-width: 0;
   }
 
