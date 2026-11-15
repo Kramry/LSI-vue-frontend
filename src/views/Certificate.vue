@@ -1107,12 +1107,16 @@ onMounted(async () => {
 
   display: grid;
   gap: 20px;
-  width: min(100%, 1400px);
+  width: 100%;
   max-width: 1400px;
+  min-width: 0;
   margin: 0 auto;
-  justify-self: center;
   color: var(--text);
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
+}
+
+.page > * {
+  min-width: 0;
 }
 
 /* ================= Icons ================= */
@@ -1323,6 +1327,7 @@ onMounted(async () => {
 /* ================= Panels ================= */
 .panel {
   position: relative;
+  min-width: 0;
   margin-top: 18px;
   padding: 26px;
   border: 1px solid var(--line);
@@ -1589,6 +1594,8 @@ onMounted(async () => {
 /* ================= Tables: rows cascade in ================= */
 .table-wrap {
   overflow: auto;
+  min-width: 0;
+  max-width: 100%;
   margin-top: 16px;
   border: 1px solid var(--line);
   border-radius: 14px;
