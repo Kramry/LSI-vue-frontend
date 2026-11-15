@@ -1107,8 +1107,10 @@ onMounted(async () => {
 
   display: grid;
   gap: 20px;
+  width: min(100%, 1400px);
   max-width: 1400px;
   margin: 0 auto;
+  justify-self: center;
   color: var(--text);
   font-family: 'DM Sans', 'Segoe UI', system-ui, sans-serif;
 }
