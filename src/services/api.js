@@ -251,30 +251,38 @@ export async function fetchProtectedBlob(path, accept = 'application/pdf') {
 }
 
 export async function downloadFile(path, options = {}) {
-  const blob = await fetchProtectedBlob(path, '*/*')
-  const fileUrl = URL.createObjectURL(blob)
   const fileName = options.filename || path.split('/').pop() || 'download'
+  const openInNewTab = Boolean(options.openInNewTab)
+  let popup = null
 
-  if (options.openInNewTab) {
-    const popup = window.open(fileUrl, '_blank', 'noopener,noreferrer')
-    if (!popup) {
-      URL.revokeObjectURL(fileUrl)
-      throw new Error('Your browser blocked the file preview popup. Please allow pop-ups and try again.')
-    }
-    return { fileUrl, fileName, blob }
+  if (openInNewTab) {
+    popup = window.open('', '_blank', 'noopener,noreferrer')
   }
 
-  const anchor = document.createElement('a')
-  anchor.href = fileUrl
-  anchor.download = fileName
-  anchor.rel = 'noopener noreferrer'
-  anchor.style.display = 'none'
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
+  try {
+    const blob = await fetchProtectedBlob(path, '*/*')
+    const fileUrl = URL.createObjectURL(blob)
 
-  setTimeout(() => URL.revokeObjectURL(fileUrl), 500)
-  return { fileUrl, fileName, blob }
+    if (popup) {
+      popup.location.href = fileUrl
+      return { fileUrl, fileName, blob }
+    }
+
+    const anchor = document.createElement('a')
+    anchor.href = fileUrl
+    anchor.download = fileName
+    anchor.rel = 'noopener noreferrer'
+    anchor.style.display = 'none'
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+
+    setTimeout(() => URL.revokeObjectURL(fileUrl), 500)
+    return { fileUrl, fileName, blob }
+  } catch (reason) {
+    if (popup) popup.close()
+    throw reason
+  }
 }
 
 export async function getSession() {
